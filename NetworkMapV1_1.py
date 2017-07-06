@@ -592,9 +592,9 @@ def rankCourseAdundance(courseList, title=''):
         print e
         pass
 
-term_list = [1605, 1710, 1750, 1705, 1701, 1745]
+#term_list = [1605, 1710, 1750, 1705, 1701, 1745]
 #term_list = [1710]
-#term_list = []
+term_list = []
 college_list = [None]
 #prg_list = ['AD023']
 prg_list = []
