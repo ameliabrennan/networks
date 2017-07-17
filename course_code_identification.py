@@ -1,30 +1,56 @@
-# Check str of unknown length and format for 8 or 9 digits with course_code structure
-def return_course_code(str):
-  while True:
-    for i in range(len(str)):
-      try:
-        if check_str4_num4(str[i:i+8], 4, 4):
-          try:
-            if str[i+8:i+9].isalpha():
-              return str[i:i+9]
-            else:
-              return str[i:i+8]
-          except:
-            return str[i:i+8] 
-      except:
-        return ""
+# Trys to find section of txt with a known course code
+## All known course codes start with 3 or 4 characters
 
-# check first str_len of str sre alpha
-# check next num_len of str are digit
-def check_str_num(str, str_len=4, num_len=4):
-  if len(str) != str_len + num_len):
-    return False
+def return_course_code(txt):
+  # All known course code charaters
+  course_code_chars_List = ['ACCT','AERO','AERS','AGRI','ARCH','AUTO','BAFI',
+                            'BESC','BIOL','BUIL','BUSM','CELL','CHEM','CIVE',
+                            'COMM','COSC','COTH','CUED','DENT','EASC','ECON',
+                            'EEET','EMPL','ENVI','EXTL','GEDU','GEOM','GRAP',
+                            'HUSO','HWSS','INTE','ISYS','JUST','LANG','LAW',
+                            'LIBR','MANU','MATH','MEDS','MIET',
+                            'MKTG','NONE','NURS','OART','OENG','OFFC','OHTH',
+                            'OMGT','ONPS','OPSC','OTED','PERF','PHAR','PHIL',
+                            'PHYS','POLI','PROC','PUBH','RADI','REHA','SOCU',
+                            'SOSK','SPRT','TCHE','TOUR','VART']
+  # loop through course_chars List
+  for course_chars in course_code_chars_List:
+    print
+    print course_chars
+    # check for course_chars in txt
+    #
+    i = 0
+    # check for instances of course_chars then 4 digits
+    ## loop until course_chars not found or end of string reached
+    while True:
+      try:
+        if course_chars in txt[i:]:
+          print "1: %i" %i
+          print txt
+          i = txt.index(course_chars[i:])
+        
+          print "2: %i" %i
+          # check for 4 digits past course_chars
+          ## if 4 digits after alpha_chars return course code
+          ## else check rest of txt
+          if txt[i+len(course_chars):i+len(course_chars)+4].isdigit():
+            return txt[i:i+len(course_chars)+4]
+          print "3: %i" %i
+          txt = txt[i+len(course_chars):]
+          i = 0
+          print "4: %i" %i
+        else:
+          break
+      except:
+        break
+
+  # return empty string if not couse_code found
+  return ""
+
+print return_course_code('sdfdsfLAW357fdsjLAW2345fhs')
     
-  try:
-    if not str[:str_len].isalph():
-      return False
-    if not str[str_len:].isdigit():
-      return False
-  except:
-    return False
-    
+        
+        
+             
+
+                         
