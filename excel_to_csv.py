@@ -2,6 +2,7 @@ import xlrd
 import csv
 import os
 
+# converts Sheet1 of an excel file into a csv file
 def csv_from_excel(excelfile, csvfile):
     wb = xlrd.open_workbook(excelfile)
     sh = wb.sheet_by_name('Sheet1')
@@ -12,9 +13,14 @@ def csv_from_excel(excelfile, csvfile):
         wr.writerow(sh.row_values(rownum))
     your_csv_file.close()
 
-def batch_csv(folder, txtcondition):
+# Coverts all .xls and .xlsx files in the folder into csv files with the same name
+# txtcondition is a optional string that must be contained in the filename  
+def batch_csv(folder, txtcondition=''):
     for filename in os.listdir(folder):
-        if txtcondition in filename:
+        if (('.xls' in filename)
+            and 
+            (txtcondition in filename
+            or txtcondition == '')):
             csvfile = filename[:filename.index('.xls')] + '.csv'
             print filename
             print csvfile
