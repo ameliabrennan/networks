@@ -14,8 +14,9 @@ def words_freq_dist(input_string):
 
 def ignored_words():
     stops = set(stopwords.words('english'))
+    html_filler = set(['div', 'class=', '/div'])
     punctuation = set(['.', ',', '?', "''", ':', '``', ')', "'s", '(', '...', '%', '-', '!', "'", u'>', u';', u'&'])
-    return stops | punctuation
+    return stops | punctuation | html_filler
 
 my_file = open("input_text.txt", "r")
 my_string = ""
