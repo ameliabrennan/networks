@@ -1,16 +1,17 @@
 # Some tools for copying files
 # made by Sarah as part of Canvas tasks July 2017, but potentially applicable for other tasks
 
-import os
+import os, traceback
 
 # This function copies one file to another, but skips the header
 # It completes the task in one go (i.e. not line by line)
 # Hence it will fail for very large files, or (of course) if the input file does not exist
 # If successful it will copy input_file_name to output_file_name (except row one) and return True
 # If errors encountered it will return False
-# Last updated July 2017
+# Last updated July 2017 by Sarah
 def copy_file_quickly_noheader(input_file_name, output_file_name):
   result = False
+  print(input_file_name)
   try:
     with open(input_file_name, 'r') as fin:
       data = fin.read().splitlines(True)
@@ -19,6 +20,8 @@ def copy_file_quickly_noheader(input_file_name, output_file_name):
     result = True
     return(result)
   except:
+    traceback.print_exc()
+    print("Could not copy file")
     return(result)
 
 # This function copies one file to another, but skips the header
@@ -27,9 +30,10 @@ def copy_file_quickly_noheader(input_file_name, output_file_name):
 # But it is slower
 # If successful it will copy input_file_name to output_file_name (except row one) and return True
 # If errors encountered it will return False
-# Last updated July 2017
+# Last updated July 2017 by Sarah
 def copy_file_slowly_noheader(input_file_name, output_file_name):
   result = False
+  print(input_file_name)
   try:
     input_file = open(input_file_name, 'r')
     output_file = open(output_file_name, 'w')
@@ -44,5 +48,7 @@ def copy_file_slowly_noheader(input_file_name, output_file_name):
     result = True
     return(result)
   except:
+    traceback.print_exc()
+    print("Could not copy file")
     return(result)
    
