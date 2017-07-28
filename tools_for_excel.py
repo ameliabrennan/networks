@@ -63,6 +63,9 @@ def batch_csv(folder, txtcondition=''):
       print(csvfile)
       csv_from_excel(folder+filename, folder+csvfile)
 
+# This function opens an Excel file, using xlrd
+# Returns the Excel file (referred to as wb, or workbook), if successful
+# Returns False if not successful
 def open_excel_file(excel_file_name):
   result = False
   try:
@@ -73,6 +76,10 @@ def open_excel_file(excel_file_name):
     traceback.print_exc()
     return(result)  
 
+# This funciton opens a specific Excel sheet
+# It needs the Excel file to already be open ('wb')
+# Returns the sheet (sh) if successful
+# Returns False if not successful
 def open_excel_sheet(wb, sheet_name):
   result = False
   try:
@@ -82,14 +89,25 @@ def open_excel_sheet(wb, sheet_name):
     traceback.print_exc()
     return(result)
 
-def display_sheet_content(wb, sh):
-  for rownum in xrange(sh.nrows):
-    print(str(sh.row_values(rownum)))
+# This function displays the contents of an Excel sheet
+# The sheet needs to already be open
+# Does not return anything, but will exit on error
+def display_sheet_content(sh):
+  try:
+    for rownum in xrange(sh.nrows):
+      print(str(sh.row_values(rownum)))
 
-  for colnum in xrange(sh.ncols):
-    print(str(sh.col_values(colnum)))
+    for colnum in xrange(sh.ncols):
+      print(str(sh.col_values(colnum)))
+  except:
+    traceback.print_exc()
 
-def excel_column_to_array(wb, sh, colnum, ignore_header=True):
+# This function converts a specific Excel file column to an array
+# It needs the Excel sheet to be open (sh)
+# There is an option to ignore the header, this defaults to True
+# It returns the array if successful
+# It returns false if not successful
+def excel_column_to_array(sh, colnum, ignore_header=True):
   result = False
   new_array = []
 
