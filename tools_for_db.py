@@ -4,26 +4,29 @@ def db_connect(database_str, user_str, password_str, host_str):
     try:
         conn = psycopg2.connect(database=database_str, user=user_str, password=password_str, host=host_str)
         cur = conn.cursor()
+        print("Hello! Connected to database %s" %database_str)
         print_tables_available(cur)
         return cur
     except:
         traceback.print_exc()
         return None
 
-# This function will connect to the canvas test database, but only for Sarah (on the local machine)
-# It should be updated to also include external login details
-def connect_canvas_test_db_local():
-    cur = db_connect(database_str="Canvas_TEST", user_str="postgres", password_str="Robin", host_str="localhost")
+# This function will connect to the canvas test database, but only for the local machine
+# It needs a password passed in
+def connect_canvas_test_db_local(password):
+    result = db_connect(database_str="Canvas_TEST", user_str="postgres", password_str=password, host_str="localhost")
     return result
 
 
-# This function will connect to the canvas test database for machines in the network
+# This function will connect to the canvas test database
+# It still requires a password and IP string (supplied to permitted users)
 # Only permitted connections will actually respond though
-# Needs to be updated to require password!
-def connect_canvas_test_db():
-    result = db_connect(database_str="Canvas_TEST", user_str="postgres", password_str="Robin", host_str="10.215.138.88")
+def connect_canvas_test_db(password, host):
+    result = db_connect(database_str="Canvas_TEST", user_str="postgres", password_str=password, host_str=host)
     return result
 
+# This function lists the tables available from a database cursor
+# It doesn't return anything but will exit on error
 def print_tables_available(cur):
     try:
         sql_string = "select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';"
