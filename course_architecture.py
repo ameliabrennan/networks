@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import DataFrame
 import datetime
+import operator
+from functions_CA import create_view_file_dim_STARTINGPOINT, create_view_file_fact_STARTINGPOINT, create_view_course_dim_STARTINGPOINT, create_view_join_fileFact_fileDim, create_view_course_nFiles_size, create_view_course_contentType_count, create_view_course_nFileTypes, create_view_course_code_nFiles_sizeAll, create_view_course_code_nFiles_sizeAll_nFileTypes, create_dic_course_fileTypes, get_course_contentType_count_as_DF, get_course_code_nFiles_sizeAll_nFileTypes_as_DF, create_dic_fileTypes_nFiles
 from mime_types import get_type_from_MIME
 from compare_date import compare_date
 from cleaning_sis import clean_sis_course_id
+from count_course_with_type import count_course_with_type
 import traceback
-
-i = datetime.datetime.now()
 
 # Get list of Canvas course IDs from AN:
 courses = pd.read_csv('/Users/e35596/RMITStudios/Canvas_metrics/Canvas_IDs_in_SAMS.csv', usecols = ['id'])
@@ -26,7 +27,7 @@ fig_dir = folder + 'figs/'
 dbfile = 'test.sqlite'
 
 # Sarah's database (will break as the table names may not be the same)
-#conn = psycopg2.connect(database = "Canvas_TEST", FILL IN HERE)
+#conn = psycopg2.connect(database = "Canvas_TEST", STUFF)
 
 # Connect to the database
 conn = sq.connect(folder+dbfile)
@@ -39,400 +40,116 @@ conn.create_function("clean_sis", 1, clean_sis_course_id)
 # Create the cursor
 cur = conn.cursor()
 
-def create_view_file_dim_STARTINGPOINT(cur, cv_course_id=''):
-    '''
-    Pulls out the useful pieces from file_dim table. Note that files must be 'available' or 'hidden'.
-    Includes an extra column that converts the content_type to a more general type.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
+# The list of live courses that we're working with, obtained by PR
+live_courses_from_PR = ('95950000000000628', '95950000000008932', '95950000000001212', '95950000000001479', '95950000000001534', '95950000000001587', '95950000000001629', '95950000000001810', '95950000000000416', '95950000000010440', '95950000000000391', '95950000000000393', '95950000000010380', '95950000000002289', '95950000000002663', '95950000000002670', '95950000000002678', '95950000000009379', '95950000000003039', '95950000000003061', '95950000000009119', '95950000000003186', '95950000000003266', '95950000000010866', '95950000000009322', '95950000000000407', '95950000000000409', '95950000000004505', '95950000000004554', '95950000000009214', '95950000000000367', '95950000000000379', '95950000000004822', '95950000000000400', '95950000000010485', '95950000000010352', '95950000000009402', '95950000000010853', '95950000000010487', '95950000000000495', '95950000000000555', '95950000000006912', '95950000000007232', '95950000000007516', '95950000000007526', '95950000000000348', '95950000000000351', '95950000000008069', '95950000000008212', '95950000000010488', '95950000000008602')
+
+# OLD: for testing
+#live_courses_from_PR = ('95950000000000126', '95950000000000132', '95950000000000153', '95950000000000156', '95950000000000163', '95950000000000165', '95950000000000170', '95950000000000174', '95950000000000175', '95950000000000178', '95950000000000185', '95950000000000191', '95950000000000192', '95950000000000193', '95950000000000194', '95950000000000209', '95950000000000214', '95950000000000215', '95950000000000220', '95950000000000224', '95950000000000225', '95950000000000226', '95950000000000228', '95950000000000234', '95950000000000259', '95950000000000262', '95950000000000271', '95950000000000272', '95950000000000273', '95950000000000275', '95950000000000276', '95950000000000278', '95950000000000279', '95950000000000281', '95950000000000282', '95950000000000283', '95950000000000285', '95950000000000287', '95950000000000288', '95950000000000289', '95950000000000290', '95950000000000297', '95950000000000298', '95950000000000318', '95950000000000348', '95950000000000351', '95950000000000367', '95950000000000370', '95950000000000379', '95950000000000391', '95950000000000393', '95950000000000400', '95950000000000406', '95950000000000407', '95950000000000409', '95950000000000414', '95950000000000416', '95950000000000426', '95950000000000493', '95950000000000495', '95950000000000549', '95950000000000555', '95950000000000611', '95950000000000614', '95950000000000616', '95950000000000618', '95950000000000628', '95950000000001212', '95950000000001245', '95950000000001479', '95950000000001534', '95950000000001535', '95950000000001587', '95950000000001629', '95950000000001810', '95950000000002289', '95950000000002663', '95950000000002670', '95950000000002678', '95950000000002736', '95950000000003039', '95950000000003061', '95950000000003186', '95950000000003266', '95950000000004501', '95950000000004504', '95950000000004505', '95950000000004554', '95950000000004822', '95950000000004943', '95950000000005177', '95950000000005788', '95950000000005830', '95950000000005993', '95950000000006764', '95950000000006912', '95950000000006918', '95950000000006919', '95950000000007232', '95950000000007452', '95950000000007516', '95950000000007526', '95950000000007577', '95950000000008069', '95950000000008212', '95950000000008394', '95950000000008602', '95950000000008826', '95950000000008932', '95950000000009119', '95950000000009205', '95950000000009206', '95950000000009214', '95950000000009322', '95950000000009379', '95950000000009402', '95950000000010352', '95950000000010380', '95950000000010440', '95950000000010485', '95950000000010487', '95950000000010488', '95950000000010643', '95950000000010853', '95950000000010866', '95950000000011375')
+
+
+#########################  Extracting the file types by course and plotting the frequencies of courses containing each file type  #########################
+
+# Get the dataframe containing the file types and frequencies
+dataframe1 = get_course_contentType_count_as_DF(cur, cv_course_id=live_courses_from_PR, new_file_types=True)
+#print dataframe1
+
+# Turn this into a dictionary of course ids with all filetypes they contain
+file_types_dic = create_dic_course_fileTypes(dataframe1)
+print file_types_dic
+
+# Turn this into another dictionary of file types and number of courses in which they appear
+freq_dic = count_course_with_type(file_types_dic)
+#print freq_dic
+
+# Create dictionary of file types with the total number of times they appear in any course, and another of file types with list of number of files
+type_nFiles_dic, type_nFiles_list_dic = create_dic_fileTypes_nFiles(dataframe1)
+#print type_nFiles_dic
+#print type_nFiles_list_dic
+
+
+
+# Divide the totals by the number of courses containing at least one of these file types to work out the average number of times a file type is used by a course
+x_num_courses = []
+y_mean_files = []
+type_labels = []
+for key in freq_dic:
+    num_courses = freq_dic[key]
     try:
-        view_name = 'view_file_dim_STARTINGPOINT'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT course_id, id AS file_ID, display_name, content_type, set_file_type(content_type) AS new_type, owner_entity_type, file_state, Count(*)'
-        qry += ' FROM file_dim'
-        qry += ' WHERE (file_state = "available" OR file_state = "hidden")'
-        if len(cv_course_id) > 0:
-            qry += ' AND course_id IN {0}'.format(str(cv_course_id))
-        qry += ' GROUP BY course_id, file_ID, display_name, content_type, new_type, owner_entity_type, file_state'
-        qry += ' ORDER BY Count(*) DESC'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
+        num_files = type_nFiles_dic[key]
+        x_num_courses.append(num_courses)
+        mean = float(num_files)/num_courses
+        y_mean_files.append(mean)
+        type_labels.append(key)
     except:
-        traceback.print_exc()
-        return(result)
+        print 'Problem!'
+        pass
 
-def create_view_file_fact_STARTINGPOINT(cur, cv_course_id=''):
-    '''
-    Pulls out the useful pieces from file_fact table.
-    Puts them into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_file_fact_STARTINGPOINT'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
+print x_num_courses
+print y_mean_files
+print type_labels
 
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT course_id, file_id AS file_ID, user_id, size, Count(*)'
-        qry += ' FROM file_fact'
-        if len(cv_course_id) > 0:
-            qry += ' WHERE course_id IN {0}'.format(cv_course_id)
-
-        qry += ' GROUP BY course_id, file_ID, user_id, size'
-        qry += ' ORDER BY Count(*) DESC'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-def create_view_course_dim_STARTINGPOINT(cur, cv_course_id=''):
-    '''
-    Pulls out the useful pieces from course_dim table.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_dim_STARTINGPOINT'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT id AS course_id, code AS course_code, sis_source_id AS course_code_term, workflow_state, Count(*)'
-        qry += ' FROM course_dim'
-        qry += ' WHERE (workflow_state = "available" OR workflow_state = "completed")'
-        if len(cv_course_id) > 0:
-            qry += ' AND course_id IN {0}'.format(cv_course_id)
-        qry += ' GROUP BY course_id, code, sis_source_id, workflow_state'
-        qry += ' ORDER BY Count(*) DESC'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
+plt.figure(figsize=(20,13))
+plt.scatter(x_num_courses,y_mean_files)
+for i, txt in enumerate(type_labels):
+    plt.annotate(txt, (x_num_courses[i],y_mean_files[i]), xytext=(5, 5), textcoords='offset points')
+plt.xlabel('Number of courses containing file type')
+plt.ylabel('Average number of files by type')
+plt.xlim(0,60)
+plt.ylim(0,120)
+plt.grid()
+#plt.show()
+plt.savefig(fig_dir + 'mean_nFiles_vs_nCourses_byType.png')
+plt.close()
 
 
-def create_view_join_fileFact_fileDim(cur):
-    '''
-    Joins together the file tables (fact and dim) on the file_id variable.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_join_fileFact_fileDim'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
 
-        tab_fileFact = 'view_file_fact_STARTINGPOINT'
-        tab_fileDim = 'view_file_dim_STARTINGPOINT'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT tab_fileFact.course_id AS course_id'
-        qry += ', tab_fileFact.file_ID AS file_ID'
-        qry += ', display_name, content_type, new_type, owner_entity_type, file_state'
-        qry += ', user_id, size, Count(*)'
-        qry += ' FROM ({0}) tab_fileDim LEFT JOIN ({1}) tab_fileFact ON tab_fileDim.file_id = tab_fileFact.file_id'.format(tab_fileDim, tab_fileFact)
-        qry += ' GROUP BY tab_fileDim.course_id, tab_fileDim.file_ID, display_name, content_type, new_type, owner_entity_type, file_state, user_id, size'
-        qry += ' ORDER BY Count(*) DESC'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
+# sort the dictionary in descending order of frequency
+sorted_freq_dic = sorted(freq_dic.items(), key=operator.itemgetter(1), reverse=True)
+#print sorted_freq_dic
 
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
+# Pull this apart for plotting
+#print zip(*sorted_freq_dic)
+x_tick_labels = zip(*sorted_freq_dic)[0]
+x = np.arange(len(x_tick_labels))
+y = zip(*sorted_freq_dic)[1]
 
-def create_view_course_nFiles_size(cur, ignore_web_types=False):
-    '''
-    Counts the number of files for a course and sums the file sizes together.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_nFiles_size'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        tab_fileFactDim = 'view_join_fileFact_fileDim'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT course_id, Count(*) AS file_count, Sum(size) AS size_all_files'
-        qry += ' FROM ({0})'.format(tab_fileFactDim)
-        qry += ' WHERE (new_type != "unknown")'
-        if ignore_web_types:
-            qry += ' AND (new_type != "web_content")'
-        qry += ' GROUP BY course_id'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-def create_view_course_contentType_count(cur, new_file_types=True):
-    '''
-    Groups the files together by type, and counts the number of files within each type.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_contentType_count'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        tab_fileDim = 'view_file_dim_STARTINGPOINT'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT course_id,'
-        if new_file_types:
-            qry += ' new_type AS type,'
-        else:
-            qry += ' content_type AS type,'
-        qry += ' Count(*) AS count'
-        qry += ' FROM ({0})'.format(tab_fileDim)
-        qry += ' GROUP BY course_id, type'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-def create_view_course_nFileTypes(cur, ignore_web_types=True):
-    '''
-    Counts the number of file types. new_file_types is a flag determining whether to use the new file type definitions from mime_types.py (default) or the MIME types provided by content_type.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_nFileTypes'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        tab_course_contentType_count = 'view_course_contentType_count'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT course_id, Count(*) AS num_filetypes'
-        qry += ' FROM ({0})'.format(tab_course_contentType_count)
-        qry += ' WHERE type != "unknown"'
-        if ignore_web_types:
-            qry += ' AND type != "web_content"'
-        qry += ' GROUP BY course_id'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-def create_view_course_code_nFiles_sizeAll(cur):
-    '''
-    Joins the reduced course_dim table to the table that counts the number of files, joined on the course_id.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_code_nFiles_sizeAll'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        tab_courseDim = 'view_course_dim_STARTINGPOINT'
-        tab_2 = 'view_course_nFiles_size'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT tab_fileDim.course_id, course_code, file_count, size_all_files'
-        qry += ' FROM ({0}) tab_fileDim LEFT JOIN ({1}) tab_2 ON tab_fileDim.course_id = tab_2.course_id'.format(tab_courseDim, tab_2)
-        qry += ' GROUP BY tab_fileDim.course_id, course_code, file_count, size_all_files'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-def create_view_course_code_nFiles_sizeAll_nFileTypes(cur):
-    '''
-    Joins the table with actual course code and number of files to the table with number of file types, joined on the course_id.
-    Puts this into a VIEW.
-    Returns view name if successful in doing so.
-    Returns False if an error encountered.
-    '''
-    result = False
-    try:
-        view_name = 'view_course_code_nFiles_sizeAll_nFileTypes'
-        qry = 'DROP VIEW IF EXISTS {0};'.format(view_name)
-        cur.execute(qry)
-
-        tab_1 = 'view_course_code_nFiles_sizeAll'
-        tab_2 = 'view_course_nFileTypes'
-        qry = 'CREATE VIEW {0} AS'.format(view_name)
-        qry += ' SELECT tab_1.course_id, course_code, file_count, size_all_files, num_filetypes'
-        qry += ' FROM ({0}) tab_1 LEFT JOIN ({1}) tab_2 ON tab_1.course_id = tab_2.course_id'.format(tab_1, tab_2)
-        qry += ' GROUP BY tab_1.course_id, course_code, file_count, size_all_files, num_filetypes'
-        qry += ';'
-        print(qry)
-        cur.execute(qry)
-
-        return(view_name)
-    except:
-        traceback.print_exc()
-        return(result)
-
-# build all other functions as above
-# build a function to update all of the views (which may be necessary if I change my code for them, not because underlying data will change) - will need to do this actually, every time I change course ID set
-# build function to call something and output into a pandas DataFrame
-# put in my loop or whatever to re-create my plots - how to extract useful stuff from the dataframe regarding content types?
+plt.figure(figsize=(20,15))
+ax = plt.subplot(1, 1, 1)
+#plt.ylim(0,110)
+#plt.xlim(-1,len(name))
+plt.xticks(x, x_tick_labels,rotation=70)
+plt.bar(x,y, align='center')
+ax.set_xlabel('File types')
+ax.set_ylabel('Number of courses')
+#plt.show()
+plt.savefig(fig_dir + 'fileType_vs_numCourses.png')
+plt.close()
 
 
-def run_all(cur, cv_course_id='', ignore_web_types=True, new_file_types=True):
 
-    result = create_view_file_dim_STARTINGPOINT(cur, cv_course_id=cv_course_id)
-    print result
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        #print(tabulate(result, headers=zip(*cur.description)[0]))
-
-
-    result = create_view_course_contentType_count(cur, new_file_types=new_file_types)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchall()
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-        course_contentType_count_pd = DataFrame(result)
-        course_contentType_count_pd.columns = [i[0] for i in cur.description]
-        print course_contentType_count_pd.head(10)
+for key in type_nFiles_list_dic:
+    print key + ': ' + str(type_nFiles_list_dic[key])
+    plt.hist(type_nFiles_list_dic[key])
+    plt.xlabel('Number of {0} files'.format(key))
+    plt.ylabel('Number of courses')
+    #plt.show()
+    plt.savefig(fig_dir + 'hist_by_type/hist_' + key + '.png')
+    plt.close()
 
 
-    result = create_view_file_fact_STARTINGPOINT(cur, cv_course_id=cv_course_id)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
+#########################  Extracting the numbers of files, size, etc and plotting these  #########################
 
+# Get the dataframe containing files, size, types
+dataframe2 = get_course_code_nFiles_sizeAll_nFileTypes_as_DF(cur, cv_course_id=live_courses_from_PR, new_file_types=True, ignore_web_types=True, broken_files=False)
+print dataframe2#.head(10)
 
-    result = create_view_course_dim_STARTINGPOINT(cur, cv_course_id=cv_course_id)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
+# Plot
+x_labs_dic = {'file_count': 'Total number of files', 'size_all_files': 'Total size of all files (MB)', 'num_filetypes': 'Number of file types'}
 
-
-    result = create_view_join_fileFact_fileDim(cur)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-
-
-    result = create_view_course_nFiles_size(cur, ignore_web_types=ignore_web_types)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-
-
-    result = create_view_course_code_nFiles_sizeAll(cur)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-
-
-    result = create_view_course_nFileTypes(cur, ignore_web_types=ignore_web_types)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-
-
-    result = create_view_course_code_nFiles_sizeAll_nFileTypes(cur)
-    if (result != False):
-        print("Successfully created view %s!" %result)
-        sql = "SELECT * FROM {0};".format(result)
-        cur.execute(sql)
-        result = cur.fetchmany(10)
-        print(tabulate(result, headers=zip(*cur.description)[0]))
-
-        course_code_nFiles_sizeAll_nFileTypes_pd = DataFrame(result)
-        course_code_nFiles_sizeAll_nFileTypes_pd.columns = [i[0] for i in cur.description]
-        print course_code_nFiles_sizeAll_nFileTypes_pd.head(10)
-
-
-run_all(cur, cv_course_id=('95950000000008895', '95950000000000153'))
-
-
-'''
-result = create_view_file_dim_STARTINGPOINT(cur, '95950000000008895')
-if (result != False):
-    print("Successfully created view %s!" %result)
-    sql = 'SELECT * FROM view_file_dim_STARTINGPOINT;'
-    cur.execute(sql)
-    result = cur.fetchmany(10)
-    print(tabulate(result))
-#  print result.keys()
-    df = DataFrame(cur.fetchall())
-#  df.columns = cur.keys()
-    num_fields = len(cur.description)
-    df.columns = [i[0] for i in cur.description]
-    print df.head(10)
-'''
-#NEXT: pull into Pandas dataframe
-
-#result = cur.fetchone()
-#result = cur.fetchmany(100)
-#result = cur.fetchall()
-#print result
-#print tabulate(result)
-#print cur.rowcount
-#print len(result)
-#print result[0][1]
+for var in ['file_count', 'size_all_files', 'num_filetypes']:
+    dataframe2.hist(column=var, bins=6)
+    plt.xlabel(x_labs_dic[var])
+    plt.ylabel('Number of courses')
+    #plt.show()
+    plt.savefig(fig_dir + var + '.png')
+    plt.close()
