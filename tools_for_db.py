@@ -4,7 +4,7 @@ def db_connect(database_str, user_str, password_str, host_str):
     try:
         conn = psycopg2.connect(database=database_str, user=user_str, password=password_str, host=host_str)
         cur = conn.cursor()
-        print("Hello! Connected to database %s" %database_str)
+        print("\nHello! Connected to database %s" %database_str)
         print_tables_available(cur)
         return cur
     except:
@@ -13,6 +13,7 @@ def db_connect(database_str, user_str, password_str, host_str):
 
 # This function will connect to the canvas test database, but only for the local machine
 # It needs a password passed in
+# I thought it would need a port but this default to 5432 so should be ok
 def connect_canvas_test_db_local(password):
     result = db_connect(database_str="Canvas_TEST", user_str="postgres", password_str=password, host_str="localhost")
     return result
@@ -29,13 +30,26 @@ def connect_canvas_test_db(password, host):
 # It doesn't return anything but will exit on error
 def print_tables_available(cur):
     try:
-        sql_string = "select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';"
-        cur.execute(sql_string)
-        table_list = numpy.array(cur.fetchall())
-        print("Tables available: ")
+        table_list = return_tables_available(cur)
+        print("Tables available: \n")
         print(table_list)
+        print("\n")
     except:
         traceback.print_exc()
+
+# This function RETURNS the tables available from a database cursor
+# It will return False if an error encountered, or an array of table names if no error encountered
+def return_tables_available(cur):
+    result = False
+    try:
+      sql_string = "select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';"
+      cur.execute(sql_string)
+      table_list = numpy.array(cur.fetchall())
+      return(table_list)
+    except:
+      traceback.print_exc()
+      return(result)
+
 
 def extract_table(table_name, cur):
 
@@ -71,7 +85,7 @@ def extract_table(table_name, cur):
         print('Error encountered extracting %s, will return empty array.' %table_name)
         return []
 
-def extract_query(sql_query, cur):
+def extract_query(sql_query, cur, print_messages=True):
 
     """
     This function extracts a query from a database, into an array.
@@ -84,8 +98,9 @@ def extract_query(sql_query, cur):
 
     try:
         # Extract SQL query
-        print("Sending query:")
-        print(sql_query)
+        if(print_messages==True):
+          print("Sending query:")
+          print(sql_query)
 
         cur.execute(sql_query)
 
@@ -93,8 +108,10 @@ def extract_query(sql_query, cur):
         data_base = numpy.array(cur.fetchall())
 
         # if no errors have been encountered yet, it is safe to return the array
-        print('Array size: ', data_base.shape)
-        return data_base
+        if(print_messages == True):
+          print('Array size: ', data_base.shape)
+
+        return(data_base)
 
     except:
         # if any errors are encountered, an empty array is returned

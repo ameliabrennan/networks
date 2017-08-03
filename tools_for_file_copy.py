@@ -13,15 +13,15 @@ def copy_file_quickly_noheader(input_file_name, output_file_name):
   result = False
   print(input_file_name)
   try:
-    with open(input_file_name, 'r') as fin:
+    with open(input_file_name, 'r', encoding='utf8') as fin:
       data = fin.read().splitlines(True)
-    with open(output_file_name, 'w') as fout:
+    with open(output_file_name, 'w', encoding='utf8') as fout:
       fout.writelines(data[1:])
     result = True
     return(result)
   except:
     traceback.print_exc()
-    print("Could not copy file")
+    print("Could not copy file %s\n" %input_file_name)
     return(result)
 
 # This function copies one file to another, but skips the header
@@ -31,24 +31,26 @@ def copy_file_quickly_noheader(input_file_name, output_file_name):
 # If successful it will copy input_file_name to output_file_name (except row one) and return True
 # If errors encountered it will return False
 # Last updated July 2017 by Sarah
-def copy_file_slowly_noheader(input_file_name, output_file_name):
+def copy_file_noheader(input_file_name, output_file_name, print_messages=True):
   result = False
   print(input_file_name)
   try:
-    input_file = open(input_file_name, 'r')
-    output_file = open(output_file_name, 'w')
+    input_file = open(input_file_name, 'r', encoding='utf8')
+    output_file = open(output_file_name, 'w', encoding='utf8')
     line_count = 0
     for line in input_file:
       if(line_count == 0):
-        print("\nSkipping header file")
+        if(print_messages==True):
+          print("\nSkipping header file")
       else:
         output_file.write(line)
-        print(str(line_count))
+        if(print_messages==True):
+          print("\t %s copying row %s" %(input_file_name, str(line_count)))
       line_count += 1
     result = True
     return(result)
   except:
     traceback.print_exc()
-    print("Could not copy file")
+    print("Could not copy file %s\n" %input_file_name)
     return(result)
    
