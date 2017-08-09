@@ -50,19 +50,16 @@ def return_tables_available(cur):
       traceback.print_exc()
       return(result)
 
-
+"""
+This function extracts all records from a chosen database table, into an array.
+It does not restrict the fields or records selected from the table.
+If it encounters an error, it returns an empty array.
+Otherwise, it returns the selection in an array.
+Input: Table name string ('table_name'), cursor with connection to database.
+Ouput (when no error encountered): Array containing all the records and fields in the chosen table.
+Output (when error encountered): Empty array.
+"""
 def extract_table(table_name, cur):
-
-    """
-    This function extracts all records from a chosen database table, into an array.
-    It does not restrict the fields or records selected from the table.
-    If it encounters an error, it returns an empty array.
-    Otherwise, it returns the selection in an array.
-    Input: Table name string ('table_name'), cursor with connection to database.
-    Ouput (when no error encountered): Array containing all the records and fields in the chosen table.
-    Output (when error encountered): Empty array.
-    """
-
     try:
         query = "SELECT * FROM public." + table_name + ";"
 
@@ -86,7 +83,6 @@ def extract_table(table_name, cur):
         return []
 
 def extract_query(sql_query, cur, print_messages=True):
-
     """
     This function extracts a query from a database, into an array.
     If it encounters an error, it returns an empty array.
@@ -95,7 +91,6 @@ def extract_query(sql_query, cur, print_messages=True):
     Ouput (when no error encountered): Array containing all the query result.
     Output (when error encountered): Empty array.
     """
-
     try:
         # Extract SQL query
         if(print_messages==True):

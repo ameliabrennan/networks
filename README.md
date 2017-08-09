@@ -1,6 +1,9 @@
 # networks
 
 An initial arrangement for collaborating on Peter's network mapping script.
+
+Also beginning to be the defacto repository for RMIT Studios shared code - this will change in the future.
+
 Note the repository is PUBLIC for now, so make sure no data or sensitive files are uploaded.
 
 Some basics to start:

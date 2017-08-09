@@ -1,19 +1,8 @@
 import tools_for_db, tools_for_file_copy
+import canvas_schema_tools
 import traceback, numpy, os
 
-def table_row_count(table_name, cur, print_message=True):
-  result = False
-  try:
-    sql_query = "SELECT count(*) FROM " + table_name + ";"
-    result = tools_for_db.extract_query(sql_query, cur, print_messages=False)
-    if(print_message==True):
-      print("%s has %s rows\n" %(table_name, str(result[0][0])))
-    return(result[0][0])
-  except:
-    traceback.print_exc()
-    return(result)
-
-def table_truncate(table_name, cur, print_message=True):
+def db_table_truncate(table_name, cur, print_message=True):
   result = False
   try:
     print("Truncating table %s" %table_name)
@@ -24,12 +13,7 @@ def table_truncate(table_name, cur, print_message=True):
     traceback.print_exc()
     return(result)
 
-def db_print_table_rowcounts(cur):
-  table_list = tools_for_db.return_tables_available(cur)
-  for table_name in table_list:
-    result = table_row_count(table_name[0], cur)
-
-def table_import_data_from_text(cur, table_name, text_file_name):
+def db_table_import_data_from_text(cur, table_name, text_file_name):
   try:
     print("Copying %s into %s" %(file_name, table_name))
     sql_string = "COPY public." + table_name + " FROM '" + text_file_name + "' (FORMAT 'text', DELIMITER E'\\t', ENCODING 'UTF8');"
@@ -39,60 +23,124 @@ def table_import_data_from_text(cur, table_name, text_file_name):
     return(result)  
 
 def canvas_processing_part1_copy_text_files(input_directory, output_directory, table_list):
-  successful_copies = []
-  try:
-    
+  copy_count = []
+  try:    
     for table_name in table_list:
       print(table_name)
       input_file_name = input_directory + table_name + ".txt"
       output_file_name = output_directory + table_name + "_noheader.txt"
-      print("Attempting copy from %s to %s" %(input_file_name, output_file_name))
+      print("Copying from %s to %s" %(input_file_name, output_file_name))
       result = tools_for_file_copy.copy_file_noheader(input_file_name, output_file_name)
       if(result==True):
-        successful_copies.append(table_name)
-    
-    return(successful_copies)
+        copy_count.append(table_name)        
+    return(copy_count)
   except:
     traceback.print_exc()
-    return(successful_copies)
+    return(copy_count)
 
 
 def canvas_processing_part2_input_text_files(cur, text_file_directory, table_list):
-  successful_copies = []
+  copy_count = []
   try:    
     for table_name in table_list:
       print(table_name)
       text_file_name = output_directory + table_name + "_noheader.txt"
       print("Attempting copy from %s to %s" %(text_file_name, table_name))
-      result = table_import_data_from_text(cur, table_name, text_file_name)
+      result = db_table_import_data_from_text(cur, table_name, text_file_name)
       if(result==True):
-        successful_copies.append(table_name)
-    
-    return(successful_copies)
+        copy_count.append(table_name)    
+    return(copy_count)
   except:
     traceback.print_exc()
-    return(successful_copies)
+    return(copy_count)
 
+def check_for_element_in_list(input_list, search_item):
+  result = False
+  try:
+    for item in input_list:
+      if item == search_item:
+        result = True
+    return(result)
+  except:
+    traceback.print_exc()
+    return(None)
 
-cur = tools_for_db.connect_canvas_test_db_local("Robin")
-#print_rows_in_tables_available(cur)
-   
+def print_list(input_list, str_prefix="", str_suffix=""):
+  try:
+    for item in input_list:
+      print(str_prefix, str(item), str_suffix)
+    return
+  except:
+    traceback.print_exc()
+    return
 
-# this list of canvas table names does not include requests
-canvas_table_name_list = ["account_dim", "assignment_dim", "assignment_fact", "course_dim", "enrollment_dim", "enrollment_fact", "enrollment_term_dim", "file_dim", "file_fact", "submission_dim"]
+def remove_item_from_list(input_list, remove_item="requests"):
+  try:
+    for item in input_list:
+      if item == remove_item:
+        input_list.remove(item)
+    return(input_list)
+  except:
+    traceback.print_exc()
+    return(None)
 
-canvas_table_name_list = ["role_dim", "submission_fact", "user_dim"]
+def initialise_canvas_schema_table_list(exclude_requests=True, canvas_schema_directory=""):
+  try:
+    canvas_table_list = canvas_schema_tools.return_canvas_table_list(canvas_schema_directory)
+    if (exclude_requests == True):
+      canvas_table_list = remove_item_from_list(canvas_table_list, "requests")
+    return(canvas_table_list)
+  except:
+    traceback.print_exc()
+    return(None)
 
-input_directory = os.path.normpath("E:/unpackedFiles_INPUT") + os.path.normpath("/")
-print(input_directory)
+def initialise_db_canvas_table_list(cur, canvas_table_list):
+  try:
+    db_table_list = tools_for_db.return_tables_available(cur)
+
+    db_canvas_table_list = []
+    for table_name in canvas_table_list:
+      result = check_for_element_in_list(db_table_list, table_name)
+      if (result == True):
+        db_canvas_table_list.append(table_name)
+    return(db_canvas_table_list)
+  except:
+    traceback.print_exc()
+    return(None)
+
+def message_about_requests(exclude_requests):
+  try:
+    if (exclude_requests == True):
+      result = "Note that requests table IS EXCLUDED from current processing"
+    else:
+      result = "Note that requests table is NOT excluded from current processing"
+    return(result)
+  except:
+    traceback.print_exc()
+
+### MAIN
+
+REQUESTS_EXCLUDE = True
+input_directory = os.path.normpath("H:/CanvasData/unpackedFiles") + os.path.normpath("/")
 output_directory = os.path.normpath("E:/unpackedFiles_OUTPUT") + os.path.normpath("/")
-print(output_directory)
 
-table_list_stage1 = canvas_table_name_list
+cur = tools_for_db.connect_canvas_test_db_local("PASSWORD HERE")
+
+canvas_schema_table_list = initialise_canvas_schema_table_list(exclude_requests=REQUESTS_EXCLUDE)
+print("\n%sTables found in Canvas schema.json" %str(len(canvas_schema_table_list)))
+print_list(canvas_schema_table_list)
+print(message_about_requests(REQUESTS_EXCLUDE))
+
+db_canvas_table_list = initialise_db_canvas_table_list(cur, canvas_schema_table_list)
+print("\n%s Canvas tables found in current database." %str(len(db_canvas_table_list)))
+print_list(db_canvas_table_list)
+print(message_about_requests(REQUESTS_EXCLUDE))
+
+table_list_stage1 = canvas_schema_table_list
 table_list_stage2 = canvas_processing_part1_copy_text_files(input_directory, output_directory, table_list_stage1)
-print("Files successfully copied:\n")
-print(table_list_stage2)
-text_file_directory = output_directory
+#print("Files successfully copied:\n")
+print_list(table_list_stage2)
+#text_file_directory = output_directory
 ### CALL FILE COPYING PART HERE
 #table_list_stage3 = canvas_processing_part1_copy_text_files(cur, text_file_directory, table_list_stage2)
 
