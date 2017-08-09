@@ -1,5 +1,30 @@
 import psycopg2, traceback, numpy
 
+
+# This function will connect to the canvas test database, but only for the local machine
+# It needs a password passed in
+# I thought it would need a port but this default to 5432 so should be ok
+def connect_sarah_sandbox_db(password):
+    try:
+        conn = db_connect_conn(database_str="sarah_sandbox", user_str="postgres", password_str=password, host_str="localhost")
+        if (conn != None):
+            conn.autocommit = True
+            cur = conn.cursor()
+            return cur
+        else:
+            return None
+    except:
+        traceback.print_exc()
+        return None
+
+def db_connect_conn(database_str, user_str, password_str, host_str):
+    try:
+        conn = psycopg2.connect(database=database_str, user=user_str, password=password_str, host=host_str)
+        return conn
+    except:
+        traceback.print_exc()
+        return None
+
 def db_connect(database_str, user_str, password_str, host_str):
     try:
         conn = psycopg2.connect(database=database_str, user=user_str, password=password_str, host=host_str)

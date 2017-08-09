@@ -1,7 +1,6 @@
 import os, json, traceback
-import canvas_schema_table_list
+import tools_for_db
 
-print("Testing")
 
 # This function should be called when seeking a list of Canvas table names
 # It is a wrapper for the tasks of a) opening the json file and b) reading the table names
@@ -47,7 +46,7 @@ def read_canvas_schema_tables_recursively(input_data, table_list, count=1):
     traceback.print_exc()
     return(None)
 
-# This function opens the Canvas schema.json file (with a defalut directory if none given)
+# This function opens the Canvas schema.json file (with a default directory if none given)
 # It returns the data structure directly from the schema.json file: this is a nested 
 # structure of lists, dictionaries, strings, etc. 
 # It returns the full structure of data. 
@@ -67,3 +66,4 @@ def import_canvas_schema_from_json(canvas_schema_directory=""):
   except:
     traceback.print_exc()
     return(None)
+

@@ -1,7 +1,7 @@
 # Some tools for copying files
 # made by Sarah as part of Canvas tasks July 2017, but potentially applicable for other tasks
 
-import os, traceback
+import os, traceback, pathlib
 
 # This function copies one file to another, but skips the header
 # It completes the task line by line
@@ -10,7 +10,7 @@ import os, traceback
 # If successful it will copy input_file_name to output_file_name (except row one) and return True
 # If errors encountered it will return False
 # Last updated July 2017 by Sarah
-def copy_file_noheader(input_file_name, output_file_name, print_messages=True):
+def copy_file_noheader(input_file_name, output_file_name):
   result = False
   print(input_file_name)
   try:
@@ -19,11 +19,10 @@ def copy_file_noheader(input_file_name, output_file_name, print_messages=True):
     line_count = 0
     for line in input_file:
       if(line_count == 0):
-        if(print_messages==True):
-          print("\nSkipping header file")
+        print("\t %sSkipping header file" %input_file_name)
       else:
         output_file.write(line)
-        if(print_messages==True):
+        if((line_count % 1000) == 0):
           print("\t %s copying row %s" %(input_file_name, str(line_count)))
       line_count += 1
     result = True
@@ -50,3 +49,4 @@ def print_file_content(input_file_name, limit_rows=30):
     traceback.print_exc()
     print("Could not print file %s\n" %input_file_name)
     return
+
