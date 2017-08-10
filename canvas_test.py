@@ -124,12 +124,18 @@ def canvas_bulk_processing_run_schema_sql(cur, schema_sql_file="H:/networks/canv
 
 ### MAIN
 
-skip_list = ['requests', 'file_dim', 'quiz_question_answer_fact', 'wiki_page_dim']
+#skip_list = ['requests', 'file_dim', 'quiz_question_answer_fact', 'wiki_page_dim']
+skip_list = ['requests']
 COPY_TEXT_FILES = True
 raw_canvas_directory = os.path.normpath("H:/CanvasData/unpackedFiles") + os.path.normpath("/")
 textfile_directory = os.path.normpath("E:/unpackedFiles_OUTPUT") + os.path.normpath("/")
 
-cur = tools_for_db.connect_sarah_sandbox_db("Robin")
+# CONNECT TO DATABASE, NEED AUTOCOMMIT SETTING
+# IMPROVE OPTIONS FOR MODIFICATION HERE
+conn = tools_for_db.db_connect_conn(database_str="sarah_test", user_str="postgres", password_str="Robin", host_str="localhost")
+conn.autocommit = True
+cur = conn.cursor()
+#cur = tools_for_db.connect_sarah_sandbox_db("Robin")
 
 canvas_schema_table_list = initialise_canvas_schema_table_list("")
 print("\n%s Tables found in Canvas schema.json" %str(len(canvas_schema_table_list)))
@@ -149,7 +155,7 @@ if (COPY_TEXT_FILES == True):
   print("\n%s Canvas files successfully copied across." %str(len(current_table_list)))
   tools_for_lists.print_list(current_table_list)
 
-schema_sql_file = "H:/networks/test.sql"
+schema_sql_file = "H:/networks/canvas_schema_create.sql"
 result = canvas_bulk_processing_run_schema_sql(cur, schema_sql_file)
 
 if (result == True):
@@ -167,7 +173,8 @@ if (result == True):
   print("\n%s Canvas tables were successfully copied across to the database." %str(len(current_table_list)))
   tools_for_lists.print_list(current_table_list)
   print("\n%s Canvas tables were successfully copied across to the database." %str(len(current_table_list)))
-  print("\n%s Canvas files were asked to be excluded from processing:" %str(len(skip_list)))
+  print("\n%s Canvas file/s were asked to be excluded from processing:" %str(len(skip_list)))
+  tools_for_lists.print_list(skip_list)
 
 else:
 

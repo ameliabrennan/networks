@@ -605,154 +605,108 @@ CREATE TABLE IF NOT EXISTS assignment_override_dim (
 	workflow_state	text	--Gives the workflow state of this record. Possible values are 'active' and 'deleted'. Sarah says: note original type is enum.
 );
 
-assignment_override_user_dim
-Table contains measures related to adhoc users for whom an assignment override exists.
+CREATE TABLE IF NOT EXISTS assignment_override_user_dim (
+	id	bigint,	--Unique surrogate ID for the assignment_override_student.
+	canvas_id	bigint,	--The ID of the user in the adhoc group table.
+	assignment_id	bigint,	--Foreign key to the assignment the override is associated with. May be empty.
+	assignment_override_id	bigint,	--Foreign key to the assignment override dimension
+	quiz_id	bigint,	--Foreign key to the quiz the override is associated with. May be empty.
+	user_id	bigint,	--Foreign key to the user.
+	created_at	timestamp,	--Timestamp of when the assignment_override_student was created.
+	updated_at	timestamp	--Timestamp of when the assignment_override_student was last updated.
+);
 
-Type: dimension
+CREATE TABLE IF NOT EXISTS assignment_rule_dim (
+	assignment_id	bigint,	--ID of the assignment which can never be dropped from the group.
+	drop_rule	varchar	-- Denotes if the assignment can be dropped from the assignment group if the group allows dropping assignments...
+);
 
-Columns
+CREATE TABLE IF NOT EXISTS communication_channel_dim (
+	id	bigint,	--Unique surrogate ID for the communication channel.
+	canvas_id	bigint,	--Primary key for this communication channel in the communication_channel table.
+	user_id	bigint,	--Foreign key to the user that owns this communication channel.
+	address	varchar,	--Address, or path, of the communication channel. Set to 'NULL' for push notifications.
+	type	varchar,	--Denotes the type of the path. Possible values are 'email', 'facebook', 'push' (device push notifications), 'sms' and 'twitter'. Defaults to 'email'.
+	position	integer,	--Position of this communication channel relative to the user's other channels when they are ordered.
+	workflow_state	varchar,	--Current state of the communication channel. Possible values are 'unconfirmed' and 'active'.
+	created_at	timestamp,	--Date/Time when the quiz was created.
+	updated_at	timestamp	--Date/Time when the quiz was last updated.
+);
 
-Name	Type	Description
-id	bigint	Unique surrogate ID for the assignment_override_student.
-canvas_id	bigint	The ID of the user in the adhoc group table.
-assignment_id	bigint	Foreign key to the assignment the override is associated with. May be empty.
-assignment_override_id	bigint	Foreign key to the assignment override dimension
-quiz_id	bigint	Foreign key to the quiz the override is associated with. May be empty.
-user_id	bigint	Foreign key to the user.
-created_at	timestamp	Timestamp of when the assignment_override_student was created.
-updated_at	timestamp	Timestamp of when the assignment_override_student was last updated.
-assignment_rule_dim
-Rules associated with an assignment.
+CREATE TABLE IF NOT EXISTS conversation_dim (
+	id	bigint,	--Unique surrogate id for the conversation.
+	canvas_id	bigint,	--Original primary key for conversation in the Canvas table
+	has_attachments	boolean,	--True if the conversation has attachments
+	has_media_objects	boolean,	--True if the conversation has media objects
+	subject	varchar,	--The subject of the conversation
+	course_id	bigint,	--The course that owns this conversation
+	group_id	bigint,	--The group that owns this conversation
+	account_id	bigint	--The account this owns this conversation
+);
 
-Type: dimension
+CREATE TABLE IF NOT EXISTS conversation_message_dim (
+	id	bigint,	--Unique surrogate id for the message.
+	canvas_id	bigint,	--Original ID for canvas table.
+	conversation_id	bigint,	--Parent conversation for this message.
+	author_id	bigint,	--User id of the author of the message.
+	created_at	timestamp,	--Date and time this message was created.
+	generated	boolean,	--This attribute is true if the system generated this message (e.g. "John was added to this conversation")
+	has_attachments	boolean,	--True if the message has attachments.
+	has_media_objects	boolean,	--True if the message has media objects.
+	body	text	--The content of the message.
+);
 
-Columns
+CREATE TABLE IF NOT EXISTS course_dim (
+	id	bigint,	--Unique surrogate id for a course
+	canvas_id	bigint,	--Primary key for this course in the canvas courses table.
+	root_account_id	bigint,	--The root account associated with this course.
+	account_id	bigint,	--The parent account for this course.
+	enrollment_term_id	bigint,	--Foreign key to enrollment term table
+	name	varchar,	--The friendly name of the course.
+	code	varchar,	--The code for the course (e.g. FA12 MATH 2000)
+	type	varchar,	--deprecated. No longer used, will always be NULL.
+	created_at	timestamp,	--Timestamp when the course object was created in Canvas
+	start_at	timestamp,	--Timestamp for when the course starts.
+	conclude_at	timestamp,	--Timestamp for when the course finishes
+	publicly_visible	boolean,	--True if the course is publicly visible
+	sis_source_id	varchar,	--Correlated id for the record for this course in the SIS system (assuming SIS integration is configured)
+	workflow_state	varchar,	--Workflow status indicating the current state of the course, valid values are: completed (course has been hard concluded), created (course has been created, but not published), deleted (course has been deleted), available (course is published, and not hard concluded), claimed (course has been undeleted, and is not published).
+	wiki_id	bigint	--Foreign key to the wiki_dim table.
+);
 
-Name	Type	Description
-assignment_id	bigint	ID of the assignment which can never be dropped from the group.
-drop_rule	varchar	Denotes if the assignment can be dropped from the assignment group if the group allows dropping assignments based on certain rules. Is set to 'never_drop' if the assignment is exempted from dropping, else set to 'can_be_dropped'.
-communication_channel_dim
-Attributes for communication channel.
+CREATE TABLE IF NOT EXISTS course_section_dim (
+	id	bigint,	--Unique surrogate id for the course section.
+	canvas_id	bigint,	--Primary key for this record in the Canvas course_sections table.
+	name	varchar,	--Name of the section
+	course_id	bigint,	--Foreign key to the associated course
+	enrollment_term_id	bigint,	--Foreign key to the associated enrollment term
+	default_section	boolean,	--True if this is the default section
+	accepting_enrollments	boolean,	--True if this section is open for enrollment
+	can_manually_enroll	boolean,	--Deprecated
+	start_at	timestamp,	--Section start date
+	end_at	timestamp,	--Section end date
+	created_at	timestamp,	--Timestamp for when this section was entered into the system.
+	updated_at	timestamp,	--Timestamp for when the last time the section was updated
+	workflow_state	varchar,	--Life-cycle state for section. (active, deleted)
+	restrict_enrollments_to_section_dates	boolean,	--True when "Users can only participate in the course between these dates" is checked
+	nonxlist_course_id	bigint,	--The course id for the original course if this course has been cross listed
+	sis_source_id	varchar	--Id for the correlated record for the section in the SIS (assuming SIS integration has been properly configured)
+);
 
-Type: dimension
+CREATE TABLE IF NOT EXISTS course_ui_canvas_navigation_dim (
+	id	bigint,	--Primary key for navigational item
+	canvas_id	bigint,	--ID in Canvas system
+	name	varchar,	--Name of navigational item
+	is_default	varchar,	--(Default|NotDefault) - set to Default if this is one of the navigation items enabled in a course by default. Sarah note: original name default, a reserved postgresql word.
+	original_position	varchar	--Original position of this navigation item
+);
 
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the communication channel.
-canvas_id	bigint	Primary key for this communication channel in the communication_channel table.
-user_id	bigint	Foreign key to the user that owns this communication channel.
-address	varchar	Address, or path, of the communication channel. Set to 'NULL' for push notifications.
-type	varchar	Denotes the type of the path. Possible values are 'email', 'facebook', 'push' (device push notifications), 'sms' and 'twitter'. Defaults to 'email'.
-position	integer	Position of this communication channel relative to the user's other channels when they are ordered.
-workflow_state	varchar	Current state of the communication channel. Possible values are 'unconfirmed' and 'active'.
-created_at	timestamp	Date/Time when the quiz was created.
-updated_at	timestamp	Date/Time when the quiz was last updated.
-conversation_dim
-Attributes for a conversation
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the conversation.
-canvas_id	bigint	Original primary key for conversation in the Canvas table
-has_attachments	boolean	True if the conversation has attachments
-has_media_objects	boolean	True if the conversation has media objects
-subject	varchar	The subject of the conversation
-course_id	bigint	The course that owns this conversation
-group_id	bigint	The group that owns this conversation
-account_id	bigint	The account this owns this conversation
-conversation_message_dim
-Attributes for a message in a conversation
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the message.
-canvas_id	bigint	Original ID for canvas table.
-conversation_id	bigint	Parent conversation for this message.
-author_id	bigint	User id of the author of the message.
-created_at	timestamp	Date and time this message was created.
-generated	boolean	This attribute is true if the system generated this message (e.g. "John was added to this conversation")
-has_attachments	boolean	True if the message has attachments.
-has_media_objects	boolean	True if the message has media objects.
-body	text	The content of the message.
-course_dim
-A course in the canvas system
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for a course
-canvas_id	bigint	Primary key for this course in the canvas courses table.
-root_account_id	bigint	The root account associated with this course.
-account_id	bigint	The parent account for this course.
-enrollment_term_id	bigint	Foreign key to enrollment term table
-name	varchar	The friendly name of the course.
-code	varchar	The code for the course (e.g. FA12 MATH 2000)
-type	varchar	deprecated. No longer used, will always be NULL.
-created_at	timestamp	Timestamp when the course object was created in Canvas
-start_at	timestamp	Timestamp for when the course starts.
-conclude_at	timestamp	Timestamp for when the course finishes
-publicly_visible	boolean	True if the course is publicly visible
-sis_source_id	varchar	Correlated id for the record for this course in the SIS system (assuming SIS integration is configured)
-workflow_state	varchar	Workflow status indicating the current state of the course, valid values are: completed (course has been hard concluded), created (course has been created, but not published), deleted (course has been deleted), available (course is published, and not hard concluded), claimed (course has been undeleted, and is not published).
-wiki_id	bigint	Foreign key to the wiki_dim table.
-course_section_dim
-Attributes for a section of a course
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the course section.
-canvas_id	bigint	Primary key for this record in the Canvas course_sections table.
-name	varchar	Name of the section
-course_id	bigint	Foreign key to the associated course
-enrollment_term_id	bigint	Foreign key to the associated enrollment term
-default_section	boolean	True if this is the default section
-accepting_enrollments	boolean	True if this section is open for enrollment
-can_manually_enroll	boolean	Deprecated
-start_at	timestamp	Section start date
-end_at	timestamp	Section end date
-created_at	timestamp	Timestamp for when this section was entered into the system.
-updated_at	timestamp	Timestamp for when the last time the section was updated
-workflow_state	varchar	Life-cycle state for section. (active, deleted)
-restrict_enrollments_to_section_dates	boolean	True when "Users can only participate in the course between these dates" is checked
-nonxlist_course_id	bigint	The course id for the original course if this course has been cross listed
-sis_source_id	varchar	Id for the correlated record for the section in the SIS (assuming SIS integration has been properly configured)
-course_ui_canvas_navigation_dim
-Attributes for a Canvas navigation function
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Primary key for navigational item
-canvas_id	bigint	ID in Canvas system
-name	varchar	Name of navigational item
-default	varchar	(Default|NotDefault) - set to Default if this is one of the navigation items enabled in a course by default
-original_position	varchar	Original position of this navigation item
-course_ui_navigation_item_dim
-Attributes for a navigation item
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Primary key for navigational item
-root_account_id	bigint	Foreign key to root account of the course
-visible	varchar	(visible|hidden) Visible if this element is visible, hidden if hidden/not available in the navigation
-position	int	Position in the navigation. NULL if hidden.
+CREATE TABLE IF NOT EXISTS course_ui_navigation_item_dim (
+	id	bigint,	--Primary key for navigational item
+	root_account_id	bigint,	--Foreign key to root account of the course
+	visible	varchar,	--(visible|hidden) Visible if this element is visible, hidden if hidden/not available in the navigation
+	position	int	--Position in the navigation. NULL if hidden.
+);
 
 
 CREATE TABLE IF NOT EXISTS discussion_entry_dim (
@@ -787,679 +741,527 @@ CREATE TABLE IF NOT EXISTS discussion_topic_dim (
 	group_id	bigint	--Foreign key to the group dimension
 );
 
-enrollment_dim
-An enrollment represents a user's association with a specific course and section
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the enrollment.
-canvas_id	bigint	Primary key for this record in the Canvas enrollments table
-root_account_id	bigint	Root account id associated with this enrollment
-course_section_id	bigint	Foreign key to the course section for this enrollment
-role_id	bigint	Foreign key to the role of the person enrolled in the course
-type	varchar	Enrollment type: TaEnrollment, DesignerEnrollment, StudentEnrollment, TeacherEnrollment, StudentViewEnrollment, ObserverEnrollment
-workflow_state	varchar	Workflow state for enrollment: active, completed, rejected, deleted, invited, creation_pending
-created_at	timestamp	Timestamp for when this section was entered into the system.
-updated_at	timestamp	Timestamp for when the last time the section was updated
-start_at	timestamp	Enrollment start date
-end_at	timestamp	Enrollment end date
-completed_at	timestamp	Enrollment completed date
-self_enrolled	boolean	Enrollment was created via self-enrollment
-sis_source_id	varchar	(Deprecated) No longer used in Canvas.
-course_id	bigint	Foreign key to course for this enrollment
-user_id	bigint	Foreign key to user for the enrollment
-enrollment_rollup_dim
-Would be an empty table. Roll-up aggregating the roles held by the users in the courses they are associated with.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the user and the course.
-user_id	bigint	Foreign key to the enrolled user.
-course_id	bigint	Foreign key to the enrolled course.
-enrollment_count	int	Total number of enrollments associated with the user in the course for his/her all roles under all base roles, duplicate or not.
-role_count	int	Total number of unique roles associated with the user in the course.
-base_role_count	int	Total number of unique base roles associated with the user in the course.
-account_admin_role_count	int	Total number of 'AccountAdmin' roles associated with the user in the course.
-teacher_enrollment_role_count	int	Total number of 'TeacherEnrollment' roles associated with the user in the course.
-designer_enrollment_role_count	int	Total number of 'DesignerEnrollment' roles associated with the user in the course.
-ta_enrollment_role_count	int	Total number of 'TaEnrollment' roles associated with the user in the course.
-student_enrollment_role_count	int	Total number of 'StudentEnrollment' roles associated with the user in the course.
-observer_enrollment_role_count	int	Total number of 'ObserverEnrollment' roles associated with the user in the course.
-account_membership_role_count	int	Total number of 'AccountMembership' roles associated with the user in the course.
-no_permissions_role_count	int	Total number of 'NoPermissions' roles associated with the user in the course.
-account_admin_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-teacher_enrollment_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-designer_enrollment_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-ta_enrollment_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-student_enrollment_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-observer_enrollment_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-account_membership_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-no_permissions_enrollment_id	bigint	Enrollment ID if this a valid role for the user in the course, else NULL.
-most_privileged_role	varchar	The most privileged role associated with the user in the course.
-least_privileged_role	varchar	The least privileged role associated with the user in the course.
-enrollment_term_dim
-Enrollment term describes the term or semester associated with courses (e.g. Fall 2013)
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the enrollment term.
-canvas_id	bigint	Primary key for this record in the Canvas enrollments table.
-root_account_id	bigint	Foreign key to the root account for this enrollment term
-name	varchar	Name of the enrollment term
-date_start	timestamp	Term start date
-date_end	timestamp	Term end date
-sis_source_id	varchar	Correlated SIS id for this enrollment term (assuming SIS has been configured properly)
-external_tool_activation_dim
-Attributes for external tool (LTI) activations. Note that activations can happen on courses or accounts. If this activation is associated with a course then course_id, course_account_id and enrollment_term_id will be populated. If this activation is associated with an account then only account_id will be populated.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for tool activations
-canvas_id	bigint	Primary key for this record in the context_external_tools table in the Canvas database
-course_id	bigint	Foreign key to the course if this tool was activated in a course
-account_id	bigint	Foreign key to the account this tool was activated in if it was activated in an account
-activation_target_type	varchar	The type of object the tool was activated in, (course or account)
-url	varchar	The URL to where the tool may launch to
-name	varchar	The name of tool activation as entered by the user
-description	varchar	The description of the tool activation as entered by the user
-workflow_state	varchar	Workflow state for activation (active, deleted)
-privacy_level	varchar	Privacy setting for activation (name_only, email_only, anonymous, public)
-created_at	timestamp	Timestamp when the activation was created
-updated_at	timestamp	Timestamp when the activation was last updated
-tool_id	varchar	The tool id received from the external tool. May be missing if the tool does not send an id.
-selectable_all	boolean	true - tool is selectable in all scenarios. false - not selectable for assignment or module selection menu
-file_dim
-Attributes for files.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for this file.
-canvas_id	bigint	Primary key for this file in the attachments table.
-display_name	text	Name of this file.
-account_id	bigint	Foreign key to the account this file belongs to.
-assignment_id	bigint	Foreign key to the assignment this file belongs to.
-conversation_message_id	bigint	Foreign key to the conversation message this file belongs to.
-course_id	bigint	Foreign key to the course this file belongs to.
-folder_id	bigint	Foreign key to the folder this file belongs to.
-group_id	bigint	Foreign key to the group this file belongs to.
-quiz_id	bigint	Foreign key to the quiz this file belongs to.
-quiz_submission_id	bigint	Foreign key to the quiz submission this file belongs to.
-replacement_file_id	bigint	ID of the overwriting file if this file is overwritten.
-root_file_id	bigint	ID of the source file from which this file was copied and created. Set to 'NULL' when this is the only copy.
-submission_id	bigint	Foreign key to the submission this file belongs to.
-uploader_id	bigint	Foreign key to the user who uploaded this file. Might contain users which are not in the user dimension table.
-user_id	bigint	Foreign key to the user this file belongs to.
-owner_entity_type	enum	Table this file is associated with. Possible values are 'account', 'assignment', 'conversation_message', 'course', 'group', 'quiz', 'quiz_submission', 'submission' and 'user'.
-content_type	varchar	Contains the MIME type of this file.
-md5	varchar	Contains the MD5 checksum of the contents of this file.
-file_state	enum	Denotes the current state of this file. Possible values are 'available', 'broken', 'deleted', 'errored' and 'hidden'.
-could_be_locked	enum	Dictates if the quiz can be locked or not. Possible values are 'allow_locking' and 'disallow_locking'.
-locked	enum	Denotes the current lock status of this file. Possible values are 'is_locked' and 'is_not_locked'.
-lock_at	timestamp	Date/Time when this file is to be locked.
-unlock_at	timestamp	Date/Time when this file is to unlocked.
-viewed_at	timestamp	Date/Time when this file was last viewed.
-created_at	timestamp	Date/Time when this file was created.
-updated_at	timestamp	Date/Time when this file was last updated.
-deleted_at	timestamp	Date/Time when this file was deleted.
-grading_period_dim
-Attributes for grading period. A Grading period is like a "term", essentially used for splitting up the gradebook into "periods"
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate identifier for the grading period.
-canvas_id	bigint	Primary key for the grading period.
-grading_period_group_id	bigint	Surrogate ID to the grading period group table.
-close_date	timestamp	Grades can only be changed before the close date of the grading period.
-created_at	timestamp	Timestamp when record was created
-end_date	timestamp	End date of the grading period.
-start_date	timestamp	Start date of the grading period.
-title	varchar	Title for the grading period.
-updated_at	timestamp	Timestamp when record was last updated.
-workflow_state	varchar	current workflow state. Possibe values are 'active', 'deleted'
-grading_period_group_dim
-Attributes for grading period groups. Which are a group of grading periods.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate identifier for the grading period groups
-canvas_id	bigint	Primary key for the grading period groups
-course_id	bigint	Foreign key to the Course table.
-account_id	bigint	Foreign key to the Account table.
-created_at	timestamp	Timestamp when record was created.
-title	varchar	Title for the grading period group.
-updated_at	timestamp	Timestamp when record was last updated.
-workflow_state	varchar	Workflow state for the grading period group. Possibe values are 'active', 'deleted'
-group_dim
-Attributes for groups in canvas. Groups contain two or more students enrolled in a particular course working on an assignment or project together.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the group.
-canvas_id	bigint	Primary key to the groups table in canvas.
-name	varchar	Name of the group.
-description	text	Description of the group.
-created_at	timestamp	Timestamp when the group was first saved in the system.
-updated_at	timestamp	Timestamp when the group was last updated in the system.
-deleted_at	timestamp	Timestamp when the group was deleted.
-is_public	boolean	True if the group contents are accessible to public.
-workflow_state	varchar	Workflow state for group.(values: deleted,active)
-context_type	varchar	The context type to which the group belongs to. For example- Accounts, Courses etc.
-category	text	Group description by the users.
-join_level	varchar	Permissions required to join a group. For example, it can be invitation-only or auto.
-default_view	varchar	Default view for groups is the feed.
-sis_source_id	bigint	Correlated id for the record for this group in the SIS system (assuming SIS integration is configured)
-group_category_id	bigint	(Not implemented) Foreign key to group category dimension table.
-account_id	bigint	Parent account for this group.
-wiki_id	bigint	Foreign key to the wiki_dim table.
-group_membership_dim
-Attributes for groups_membership in canvas.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	varchar	The ID of the membership object
-canvas_id	varchar	The ID of the membership object as it appears in the db.
-group_id	bigint	Foreign key to the group dimension for a particular group.
-moderator	enum	Whether or not the user is a moderator of the group. Possible values are 'is_moderator' and 'not_moderator'.
-workflow_state	enum	The current state of the membership. Current possible values are 'accepted', 'invited', 'requested', and 'deleted'
-created_at	timestamp	Timestamp when the group membership was first saved in the system.
-updated_at	timestamp	Timestamp when the group membership was last updated in the system.
-module_completion_requirement_dim
-Attributes for a module completion.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module completion requirement.
-module_id	bigint	Module that contains the completion requirement.
-module_item_id	bigint	Item that is the subject of the completion requirement.
-requirement_type	enum	Type of completion event that must be achieved to consider item complete.
-module_dim
-Attributes for a module.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module.
-canvas_id	bigint	Original primary key for module in the Canvas table.
-course_id	bigint	The course that owns this module.
-require_sequential_progress	enum	Should module items be completed sequentially? Valid values are 'required', 'not_required', 'unspecified'.
-workflow_state	enum	Workflow state for submission lifetime values. Possible values are 'locked', 'completed', 'unlocked' and 'started'.
-position	integer	Position of the module on the modules page.
-name	text	The name of the module in Canvas.
-created_at	timestamp	Date/Time when the module was created.
-deleted_at	timestamp	Timestamp when the module was deleted.
-unlock_at	timestamp	Timestamp when the module will unlock.
-updated_at	timestamp	Date/Time when the module was last updated.
-module_item_dim
-Attributes for a module item.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module_item.
-canvas_id	bigint	Original primary key for module_item in the Canvas table.
-assignment_id	bigint	Key into assignments table for 'Assignment' type items.
-course_id	bigint	The course that owns this module.
-discussion_topic_id	bigint	Key into discussion_topics table for 'Discussion' type items.
-file_id	bigint	Key into file table for 'File' type items.
-module_id	bigint	Parent module for this module item.
-quiz_id	bigint	Key into quizzes table for 'Quiz' type items.
-wiki_page_id	bigint	Key into wiki_pages table for 'Page' type items.
-content_type	enum	The type of content linked to this item. One of: 'Assignment', 'Attachment', 'DiscussionTopic', 'ContextExternalTool', 'ContextModuleSubHeader', 'ExternalUrl', 'LearningOutcome', 'Quiz', 'Rubric' or 'WikiPage'.
-workflow_state	enum	State of the module item.
-position	integer	Position of the module item within the module context.
-title	text	Title of the module item.
-url	text	Url for external url type module items.
-created_at	timestamp	Date/Time when the module item was created.
-updated_at	timestamp	Date/Time when the module item was last updated.
-module_prerequisite_dim
-Attributes for a module prerequisite.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module prerequisite.
-module_id	bigint	Module that contains the prerequisite.
-prerequisite_module_id	bigint	Module that must be completed to fulfill the prerequisite.
-module_progression_completion_requirement_dim
-Attributes tracking a requirement that remains to be completed by a user. Not a comprehensive list, typically just holds requirements that have been attempted by the user.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module progression completion requirement.
-module_progression_id	bigint	Module progression referenced by completion requirement.
-module_item_id	bigint	Item that the user has not completed.
-requirement_type	enum	Type of completion event that must be achieved to consider item complete.
-completion_status	enum	Denotes if the completion event is complete or not. Possible values are 'complete' and 'incomplete'.
-module_progression_dim
-Attributes for a module progression.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the module progression.
-canvas_id	bigint	Original primary key for module progression in the Canvas table.
-module_id	bigint	Parent module for this module progression.
-user_id	bigint	User being tracked in the module progression.
-collapsed	enum	Collapsed state of the module progression.
-is_current	enum	The current state of the module progression.
-workflow_state	enum	The workflow state of the module progression.
-current_position	integer	Represents the users current position in the module.
-lock_version	integer	Lock version of the module progression.
-created_at	timestamp	Date/Time when the module progression was created.
-completed_at	timestamp	Date/Time when the module progression was completed.
-evaluated_at	timestamp	Date/Time when the module progression was evaluated.
-updated_at	timestamp	Date/Time when the module progression was last updated.
-pseudonym_dim
-Pseudonyms are logins associated with users.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the pseudonym.
-canvas_id	bigint	Primary key for this pseudonym in the the Canvas database
-user_id	bigint	Id for the user associated with this pseudonym
-account_id	bigint	Id for the account associated with this pseudonym
-workflow_state	varchar	Workflow status indicating that pseudonym is [deleted] or [active]
-last_request_at	timestamp	Timestamp of when the user last logged in with this pseudonym
-last_login_at	timestamp	Timestamp of last time a user logged in with this pseudonym
-current_login_at	timestamp	Timestamp of when the user logged in
-last_login_ip	varchar	IP address recorded the last time a user logged in with this pseudonym
-current_login_ip	varchar	IP address of user's current/last login
-position	int	Position of user's login credentials
-created_at	timestamp	Timestamp when this pseudonym was created in Canvas
-updated_at	timestamp	Timestamp when this pseudonym was last updated in Canvas
-password_auto_generated	boolean	True if the password has been auto-generated
-deleted_at	timestamp	Timestamp when the pseudonym was deleted (NULL if the pseudonym is still active)
-sis_user_id	varchar	Correlated id for the record for this course in the SIS system (assuming SIS integration is configured)
-unique_name	varchar	Actual login id for a given pseudonym/account
-integration_id	varchar	A secondary unique identifier useful for more complex SIS integrations. This identifier must not change for the user, and must be globally unique.
-authentication_provider_id	bigint	The authentication provider this login is associated with. This can be the integer ID of the provider, or the type of the provider (in which case, it will find the first matching provider.)
-quiz_dim
-Attributes for quiz.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the quiz.
-canvas_id	bigint	Primary key for this quiz in the quizzes table.
-root_account_id	bigint	Root account ID associated with this quiz.
-name	varchar	Name of the quiz. Equivalent Canvas API field -> 'title'.
-points_possible	double precision	Total point value given to the quiz.
-description	text	Description of the quiz.
-quiz_type	varchar	Type of quiz. Possible values are 'practice_quiz', 'assignment', 'graded_survey' and 'survey'. Defaults to 'NULL'.
-course_id	bigint	Foreign key to the course the quiz belongs to.
-assignment_id	bigint	Foreign key to the assignment the quiz belongs to.
-workflow_state	varchar	Denotes where the quiz is in the workflow. Possible values are 'unpublished', 'published' and 'deleted'. Defaults to 'unpublished'.
-scoring_policy	varchar	Scoring policy for a quiz that students can take multiple times. Is required and only valid if allowed_attempts > 1. Possible values are 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to 'keep_highest'.
-anonymous_submissions	varchar	Dictates whether students are allowed to submit the quiz anonymously. Possible values are 'allow_anonymous_submissions' and 'disallow_anonymous_submissions'. Defaults to 'disallow_anonymous_submissions'.
-display_questions	varchar	Policy for displaying the questions in the quiz. Possible values are 'multiple_at_a_time' and 'one_at_a_time'. Defaults to 'multiple_at_a_time'. Equivalent Canvas API field -> 'one_question_at_a_time'.
-answer_display_order	varchar	Policy for displaying the answers for each question in the quiz. Possible values are 'in_order' and 'shuffled'. Defaults to 'in_order'. Equivalent Canvas API field -> 'shuffle_answers'.
-go_back_to_previous_question	varchar	Policy on going back to the previous question. Is valid only if 'display_questions' is set to 'one_at_a_time'. Possible values are 'allow_going_back' and 'disallow_going_back'. Defaults to 'allow_going_back'. Equivalent Canvas API field -> 'cant_go_back'.
-could_be_locked	varchar	Dictates if the quiz can be locked or not. Possible values are 'allow_locking' and 'disallow_locking'. Defaults to 'disallow_locking'.
-browser_lockdown	varchar	Dictates whether the browser has locked-down when the quiz is being taken. Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
-browser_lockdown_for_displaying_results	varchar	Dictates whether the browser has to be locked-down to display the results. Is valid only if 'hide_results' is set to 'never' or 'until_after_last_attempt' (for the results to be displayed after the last attempt). Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
-browser_lockdown_monitor	varchar	Dictates whether a browser lockdown monitor is required. Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
-ip_filter	varchar	Restricts access to the quiz to computers in a specified IP range. Filters can be a comma-separated list of addresses, or an address followed by a mask.
-show_results	varchar	Dictates whether or not quiz results are shown to students. If set to 'always', students can see their results after any attempt and if set to 'never', students can never see their results. If 'dw_quiz_fact.allowed_attempts > 1' then when set to 'always_after_last_attempt', students can only see their results always, but only after their last attempt. Similarly, if set to 'only_once_after_last_attempt', then students can see their results only after their last attempt, that too only once. Possible values are 'always', 'never', 'always_after_last_attempt' and 'only_once_after_last_attempt'. Defaults to 'always'. Equivalent Canvas API field -> 'hide_results' combined with 'one_time_results'.
-show_correct_answers	varchar	Dictates whether correct answers are shown when are results are viewed. It's valid only if 'show_results' is set to 'always'. Possible values are 'always', 'never', 'only_once_after_last_attempt' and 'always_after_last_attempt' (Last two are only valid if 'dw_quiz_fact.allowed_attempts > 1') which have a behavior similar to 'show_results'. Defaults to 'always'. Equivalent Canvas API field -> 'show_correct_answers' combined with 'show_correct_answers_last_attempt'.
-show_correct_answers_at	timestamp	Day/Time when the correct answers would be shown.
-hide_correct_answers_at	timestamp	Day/Time when the correct answers are to be hidden.
-created_at	timestamp	Time when the quiz was created.
-updated_at	timestamp	Time when the quiz was last updated.
-published_at	timestamp	Time when the quiz was published.
-unlock_at	timestamp	Day/Time when the quiz is to be unlocked for students.
-lock_at	timestamp	Day/Time when the quiz is to be locked for students.
-due_at	timestamp	Day/Time when the quiz is due.
-deleted_at	timestamp	Time when the quiz was deleted.
-quiz_question_answer_dim
-Attributes of an answer related to a quiz question.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate key for the quiz question answer. As with all surrogate keys in Canvas Data, there is no guarantee of stability. That said, this key is particularly unstable and will likely change from dump to dump even if there are no data change.
-canvas_id	bigint	Primary key for this quiz question answer. No table available in Canvas.
-quiz_question_id	bigint	Foreign key to the quiz question dimension column.
-text	text	Text of the answer.
-html	text	HTML markup of the text.
-comments	text	Specific contextual comments for a particular answer.
-text_after_answers	text	(Used in 'short_answer_question', also known as 'fill_in_the_blank'. Set to 'NULL' in others) Text following the missing word.
-answer_match_left	varchar	(Used in 'matching_question', set to 'NULL' in others) Static value of the answer that will be displayed on the left for students to match for.
-answer_match_right	varchar	(Used in 'matching_question', set to 'NULL' in others) Correct match for the value given in 'answer_match_left', displayed in a drop-down with other 'answer_match_right' values.
-matching_answer_incorrect_matches	varchar	(Used in 'matching_question', set to 'NULL' in others) List of distractors (incorrect answers), delimited by new lines, that will be seeded with all the 'answer_match_right' values.
-numerical_answer_type	varchar	(Used in 'numerical_question', set to 'NULL' in others) Denotes the type of numerical answer that is expected. Possible values are 'exact_answer' and 'range_answer'.
-blank_id	varchar	(Used in 'fill_in_multiple_blanks_question' and 'multiple_dropdowns_question', set to 'NULL' otherwise) Refers to the ID of the blank(s) in the question text.
-exact	double precision	(Used in 'numerical_question' with answer type 'exact_answer', set to 'NULL' otherwise) Value the answer must be equal to.
-margin	double precision	(Used in 'numerical_question' with answer type 'exact_answer', set to 'NULL' otherwise) Margin of error allowed for a student's answer.
-starting_range	double precision	(Used in 'numerical_question' with answer type 'range_answer', set to 'NULL' otherwise) Start of the allowed range (inclusive).
-ending_range	double precision	(Used in 'numerical_question' with answer type 'range_answer', set to 'NULL' otherwise) End of the allowed range (inclusive).
-quiz_question_dim
-Attributes of a question associated with a quiz.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate key for the quiz question.
-canvas_id	bigint	Primary key for this quiz question in the 'quiz_questions' table.
-quiz_id	bigint	Foreign key to the quiz dimension table.
-quiz_question_group_id	bigint	Foreign key to the quiz group dimension table.
-position	int	Order in which the question will be displayed in the quiz relative to other questions associated with the quiz.
-workflow_state	varchar	Denotes where the quiz question is in the workflow. Possible values are 'unpublished', 'published' and 'deleted'. Defaults to 'unpublished'.
-created_at	timestamp	Time when the quiz question was created.
-updated_at	timestamp	Time when the quiz question was last updated.
-assessment_question_id	bigint	Foreign key to the assessment question dimension table (to be made available in later releases).
-assessment_question_version	int	Version of the assessment question associated with the quiz question (to be made available in later releases).
-name	varchar	Name of the question.
-question_type	varchar	Denotes the type of the question. Possible values are 'calculated_question', 'essay_question', 'file_upload_question', 'fill_in_multiple_blanks_question', 'matching_question', 'multiple_answers_question', 'multiple_choice_question', 'multiple_dropdowns_question', 'numerical_question', 'short_answer_question', 'text_only_question' and 'true_false_question'.
-question_text	text	Text content of the question.
-regrade_option	varchar	Denotes if regrading is available for the question. Possible values are 'available' and 'unavailable' for question types 'multiple_answers_question', 'multiple_choice_question', 'true_false_question' and 'NULL' for others. Defaults to 'available' for the allowed question types and 'NULL' for the rest.
-correct_comments	text	Comments to be displayed if the student answers the question correctly.
-incorrect_comments	text	Comments to be displayed if the student answers the question incorrectly.
-neutral_comments	text	Comments to be displayed regardless of how the student answers the question.
-quiz_question_group_dim
-Attributes for quiz group.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the quiz group.
-canvas_id	bigint	Primary key for this quiz group in the 'quiz_question_groups' table.
-quiz_id	bigint	Foreign key to quiz dimension.
-name	varchar	Name of the quiz group.
-position	int	Order in which the questions from this group will be displayed in the quiz relative to other questions in the quiz from other groups.
-created_at	timestamp	Time when the quiz question was created.
-updated_at	timestamp	Time when the quiz question was last updated.
-quiz_submission_dim
-Attributes for the last submitted quiz
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the quiz submission.
-canvas_id	bigint	Primary key for this quiz submission in the 'quiz_submissions' Canvas table.
-quiz_id	bigint	ID of the quiz the quiz submission represents. Foreign key to the quiz dimension table.
-submission_id	bigint	ID to the submission the quiz submission represents. Foreign key to the quiz submission dimension table.
-user_id	bigint	ID of the user (who is a student) who made the submission. Foreign key to the user dimension table.
-workflow_state	varchar	Denotes the current state of the quiz submission. Possible values are 'untaken', 'complete', 'pending_review', 'preview' and 'settings_only'. Defaults to 'untaken'. An 'untaken' quiz submission is recorded as soon as a student starts the quiz taking process, before even answering the first question. 'pending_review' denotes that a manual submission has been made by the student which has not been completely graded yet. This usually happens when one or more questions in the quiz cannot be autograded (e.g.. 'essay_question' type questions). A 'preview' workflow state is recorded when a Teacher or Admin previews a quiz (even a partial one). 'settings_only' pertains only to quiz moderation events. It stores the settings to create and store moderation events before the student has begun an attempt.
-quiz_state_during_submission	varchar	There can be two types of quiz states during submission, 1. Quiz submission took place after the quiz was manually unlocked after being locked (but only for a particular student such that (s)he can take the quiz even if it's locked for everyone else). 2. Quiz submission was on-time (that is, when the quiz was never locked). So the two possible values are 'manually_unlocked' and 'never_locked'. Defaults to 'never_locked'.
-submission_scoring_policy	varchar	Denotes if the score has been manually overridden by a teacher to reflect the score of a previous attempt (as opposed to a score calculated by the quiz's scoring policy. Possible values are 'manually_overridden' or the general quiz scoring policies, i.e. 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to the scoring policy of the quiz the submission is associated with.
-submission_source	varchar	Denotes where the submission was received from. Possible values are 'student' and 'test_preview'. Defaults to 'student'.
-has_seen_results	varchar	Denotes whether the student has viewed their results to the quiz.
-temporary_user_code	varchar	Construct for previewing a quiz.
-created_at	timestamp	Time when the quiz submission was created.
-updated_at	timestamp	Time when the quiz submission was last updated.
-started_at	timestamp	Time at which the student started the quiz submission.
-finished_at	timestamp	Time at which the student submitted the quiz submission.
-due_at	timestamp	Time at which the quiz submission will be overdue, and will be flagged as a late submission.
-quiz_submission_historical_dim
-Attributes for all submitted quizzes
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the quiz submission.
-canvas_id	bigint	Primary key for this quiz submission in the 'quiz_submissions' Canvas table.
-quiz_id	bigint	ID of the quiz the quiz submission represents. Foreign key to the quiz dimension table.
-submission_id	bigint	ID to the submission the quiz submission represents. Foreign key to the quiz submission dimension table.
-user_id	bigint	ID of the user (who is a student) who made the submission. Foreign key to the user dimension table.
-version_number	int	Version number of this quiz submission.
-submission_state	varchar	Denotes if the quiz submission is a current or previous submission. Possible values are 'current_submission' and 'previous_submission'. Defaults to 'current_submission'.
-workflow_state	varchar	Denotes the current state of the quiz submission. Possible values are 'untaken', 'complete', 'pending_review', 'preview' and 'settings_only'. Out of these, 'settings_only' pertains only to quiz moderation events. It stores the settings to create and store moderation events before the student has begun an attempt. Defaults to 'untaken'.
-quiz_state_during_submission	varchar	There can be two types of quiz states during submission, 1. Quiz submission took place after the quiz was manually unlocked after being locked (but only for a particular student such that (s)he can take the quiz even if it's locked for everyone else). 2. Quiz submission was on-time (that is, when the quiz was never locked). So the two possible values are 'manually_unlocked' and 'never_locked'. Defaults to 'never_locked'.
-submission_scoring_policy	varchar	Denotes if the score has been manually overridden by a teacher to reflect the score of a previous attempt (as opposed to a score calculated by the quiz's scoring policy. Possible values are 'manually_overridden' or the general quiz scoring policies, i.e. 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to the scoring policy of the quiz the submission is associated with.
-submission_source	varchar	Denotes where the submission was received from. Possible values are 'student' and 'test_preview'. Defaults to 'student'.
-has_seen_results	varchar	Denotes whether the student has viewed their results to the quiz.
-temporary_user_code	varchar	Construct for previewing a quiz.
-created_at	timestamp	Time when the quiz submission was created.
-updated_at	timestamp	Time when the quiz submission was last updated.
-started_at	timestamp	Time at which the student started the quiz submission.
-finished_at	timestamp	Time at which the student submitted the quiz submission.
-due_at	timestamp	Time at which the quiz submission will be overdue, and will be flagged as a late submission.
-role_dim
-Give the possible roles for an enrolled user
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the role.
-canvas_id	bigint	Primary key for this record in the Canvas roles table
-root_account_id	bigint	Foreign key to the account dimension for this role's root account.
-account_id	bigint	The foreign key to the account that is in the role
-name	varchar	The name of role, previously was "role_name" on the enrollments_dim
-base_role_type	varchar	The built in type this role is based on.
-workflow_state	varchar	Workflow status indicating that the role is [deleted] or [inactive]
-created_at	timestamp	Timestamp of the first time the role was entered into the system
-updated_at	timestamp	Timestamp of the last time the role was updated
-deleted_at	timestamp	Timestamp of when the role was removed from the system
-score_dim
-Attributes for scores. You can think of a score as synonymous with a cell inside the gradebook.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate identifier for the score.
-canvas_id	bigint	Primary key for the score.
-enrollment_id	bigint	Foreign key to the Enrollment table.
-grading_period_id	bigint	Foreign key to the grading period group table.
-created_at	timestamp	Timestamp when record was created.
-updated_at	timestamp	Timestamp when record was last updated.
-workflow_state	varchar	workflow state for the score. Possibe values are 'active', 'deleted'
-submission_comment_dim
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	
-canvas_id	bigint	
-submission_id	bigint	
-recipient_id	bigint	(Deprecated) No longer used in Canvas.
-author_id	bigint	
-assessment_request_id	bigint	
-group_comment_id	varchar	
-comment	text	
-author_name	varchar	
-created_at	timestamp	
-updated_at	timestamp	
-anonymous	boolean	
-teacher_only_comment	boolean	
-hidden	boolean	
-submission_comment_participant_dim
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	
-canvas_id	bigint	
-participation_type	varchar	
-created_at	timestamp	
-updated_at	timestamp	
-submission_dim
-This table records the latest submission for an assignment.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate ID for the submission.
-canvas_id	bigint	Primary key of this record in the Canvas submissions table.
-body	text	Text content for the submission.
-url	varchar	URL content for the submission.
-grade	varchar	Letter grade mapped from the score by the grading scheme.
-submitted_at	timestamp	Timestamp of when the submission was submitted.
-submission_type	enum	Type of submission. Possible values are 'discussion_topic', 'external_tool', 'media_recording', 'online_file_upload', 'online_quiz', 'online_text_entry', 'online_upload' and 'online_url'.
-workflow_state	enum	Workflow state for submission lifetime values. Possible values are 'graded', 'pending_review', 'submitted' and 'unsubmitted'.
-created_at	timestamp	Timestamp of when the submission was created.
-updated_at	timestamp	Timestamp of when the submission was last updated.
-processed	boolean	Valid only when there is a file/attachment associated with the submission. By default, this attribute is set to 'false' when making the assignment submission. When a submission has a file/attachment associated with it, upon submitting the assignment a snapshot is saved and its' value is set to 'true'. Defaults to 'NULL'.
-process_attempts	int	(Deprecated) No longer used in Canvas.
-grade_matches_current_submission	boolean	Valid only when a score has been assigned to a submission. This is set to 'false' if a student makes a new submission to an already graded assignment. This is done to indicate that the current grade given by the teacher is not for the most recent submission by the student. It is set to 'true' if a score has been given and there is no new submission. Defaults to 'NULL'.
-published_grade	varchar	Valid only for a graded submission. The values are strings that reflect the grading type used. For example, a scoring method of 'points' will show '4' if given a '4' out of '5', and a scoring method of 'letter grade' will show 'B' for the same score (assuming a grading scale where 80-90% is a 'B'). Defaults to 'NULL'.
-graded_at	timestamp	Timestamp of when the submission was graded.
-has_rubric_assessment	boolean	Valid only for a graded submission. Its' value is set to 'true' if the submission is associated with a rubric that has been assessed for at least one student, otherwise is set to 'false'. Defaults to 'NULL'.
-attempt	int	The number of attempts made including this one.
-has_admin_comment	boolean	(Deprecated) No longer used in Canvas.
-assignment_id	bigint	Foreign key to assignment dimension.
-excused	enum	Denotes if this submission is excused or not. Possible values are 'excused_submission' and 'regular_submission'.
-graded_anonymously	enum	Denotes how the grading has been performed. Possible values are 'graded_anonymously' and 'not_graded_anonymously'.
-grader_id	bigint	Foreign key to the user dimension of user who graded the assignment.
-group_id	bigint	Foreign key to the group_dim table.
-quiz_submission_id	bigint	Foreign key to the quiz_submission_dim table.
-user_id	bigint	Foreign key to the user_dim table.
-grade_state	enum	Denotes the current state of the grade. Possible values are 'auto_graded', 'human_graded' and 'not_graded'.
-user_dim
-Attributes for users
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique surrogate id for the user.
-canvas_id	bigint	Primary key for this user in the Canvas users table.
-root_account_id	bigint	Root account associated with this user.
-name	varchar	Name of the user
-time_zone	varchar	User's primary timezone
-created_at	timestamp	Timestamp when the user was created in the Canvas system
-visibility	varchar	(Deprecated) No longer used in Canvas.
-school_name	varchar	Used in Trial Versions of Canvas, the school the user is associated with
-school_position	varchar	Used in Trial Versions of Canvas, the position the user has at the school. E.g. Admin
-gender	varchar	The user's gender. This is an optional field and may not be entered by the user.
-locale	varchar	The user's locale. This is an optional field and may not be entered by the user.
-public	varchar	Used in Trial Versions of Canvas, the type of school the user is associated with
-birthdate	timestamp	The user's birth date. This is an optional field and may not be entered by the user.
-country_code	varchar	The user's country code. This is an optional field and may not be entered by the user.
-workflow_state	varchar	Workflow status indicating the status of the user, valid values are: creation_pending, deleted, pre_registered, registered
-sortable_name	varchar	Name of the user that is should be used for sorting groups of users, such as in the gradebook.
-wiki_dim
-Attributes for wiki in canvas.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique id for the wiki.
-canvas_id	bigint	Primary key to the wikis table in canvas.
-parent_type	varchar	Type of Parent the wiki belongs to. For example, Groups or Courses.
-title	text	Title for the wiki.
-created_at	timestamp	Timestamp when the wiki was first saved in the system.
-updated_at	timestamp	Timestamp when the wiki was last updated in the system.
-front_page_url	text	URL of the front page of the wiki.
-has_no_front_page	boolean	True if the wiki does not have a front page or is set to NULL.
-wiki_page_dim
-Attributes for wiki pages in canvas.
-
-Type: dimension
-
-Columns
-
-Name	Type	Description
-id	bigint	Unique id for the wiki pages.
-canvas_id	bigint	Primary key for the wiki pages table.
-title	varchar	Title of the wiki page.
-body	text	Body of the wiki page. Redshift will only load the first 256 bytes of the body.
-workflow_state	varchar	Current state the wiki is in. For Example, active, unpublished, deleted.
-created_at	timestamp	Timestamp when the wiki page was created in the system.
-updated_at	timestamp	Timestamp when the wiki page was last updated in the system.
-url	text	URL for the wiki page.
-protected_editing	boolean	Editing protection for the wiki page. It is false by default.
-editing_roles	varchar	Users or roles who can edit a wiki page.
-revised_at	timestamp	Timestamp the wiki page was last revised in the system.
-could_be_locked	boolean	True if the wiki page can be locked. This prevents it from being visible to others until ready.
-requests
-Pageview requests. Disclaimer: The data in the requests table is a 'best effort' attempt, and is not guaranteed to be complete or wholly accurate. This data is meant to be used for rollups and analysis in the aggregate, _not_ in isolation for auditing, or other high-stakes analysis involving examining single users or small samples. As this data is generated from the Canvas logs files, not a transactional database, there are many places along the way data can be lost and/or duplicated (though uncommon). Additionally, given the size of this data, our processes are often done on monthly cycles for many parts of the requests tables, so as errors occur they can only be rectified monthly.
-
-Type: both
-
-Columns
-
-Name	Type	Description
-id	guid	Request ID assigned by the canvas system to the request.
-timestamp	datetime	Timestamp when the request was made in UTC.
-timestamp_year	varchar	Year when the request was made.
-timestamp_month	varchar	Month when the request was made.
-timestamp_day	varchar	Day when the request was made.
-user_id	bigint	Foreign key in user_dim for the user that made the request. If the request was made by one user masquerading as another, then this column contains the ID of the user being masqueraded as.
-course_id	bigint	Foreign key in course_dim for the course that owned the page requested. Set to NULL if not applicable.
-root_account_id	bigint	Foreign key in account_dim for the root account on which this request was made.
-course_account_id	bigint	Foreign key in account_dim for the account the associated course is owned by.
-quiz_id	bigint	Foreign key in quiz_dim if the page request is for a quiz, otherwise NULL.
-discussion_id	bigint	Foreign key in discussion_dim if page request is for a discussion, otherwise NULL.
-conversation_id	bigint	Foreign key in conversation_dim if page request is for a conversation, otherwise NULL.
-assignment_id	bigint	Assignment foreign key if page request is for an assignment, otherwise NULL.
-url	text	URL which was requested.
-user_agent	text	User agent header received from the users browser/client software.
-http_method	varchar	HTTP method/verb (GET, PUT, POST etc.) that was sent with the request.
-remote_ip	varchar	IP address that was recorded from the request.
-interaction_micros	bigint	Total time required to service the request in microseconds.
-web_application_controller	varchar	The controller the Canvas web application used to service this request.
-web_applicaiton_action	varchar	Controller the Canvas web application used to service this request. (There is a typo in the field name, in order to minimize impact, this will be changed in a future version of Canvas Data.)
-web_application_context_type	varchar	Containing object type the Canvas web application used to service this request.
-web_application_context_id	varchar	Containing object's ID the Canvas web application used to service this request.
-real_user_id	bigint	If the request was processed by one user masquerading as another, then this column contains the real user ID of the user.
-session_id	varchar	ID of the user's session where this request was made.
-user_agent_id	bigint	(Not implemented) Foreign key to the user agent dimension table.
-http_status	varchar	HTTP status of the request.
-http_version	varchar	HTTP protocol version.
+CREATE TABLE IF NOT EXISTS enrollment_dim (
+	id	bigint,	--Unique surrogate id for the enrollment.
+	canvas_id	bigint,	--Primary key for this record in the Canvas enrollments table
+	root_account_id	bigint,	--Root account id associated with this enrollment
+	course_section_id	bigint,	--Foreign key to the course section for this enrollment
+	role_id	bigint,	--Foreign key to the role of the person enrolled in the course
+	type	varchar,	--Enrollment type: TaEnrollment, DesignerEnrollment, StudentEnrollment, TeacherEnrollment, StudentViewEnrollment, ObserverEnrollment
+	workflow_state	varchar,	--Workflow state for enrollment: active, completed, rejected, deleted, invited, creation_pending
+	created_at	timestamp,	--Timestamp for when this section was entered into the system.
+	updated_at	timestamp,	--Timestamp for when the last time the section was updated
+	start_at	timestamp,	--Enrollment start date
+	end_at	timestamp,	--Enrollment end date
+	completed_at	timestamp,	--Enrollment completed date
+	self_enrolled	boolean,	--Enrollment was created via self-enrollment
+	sis_source_id	varchar,	--(Deprecated) No longer used in Canvas.
+	course_id	bigint,	--Foreign key to course for this enrollment
+	user_id	bigint	--Foreign key to user for the enrollment
+);
+
+CREATE TABLE IF NOT EXISTS enrollment_rollup_dim (
+	id	bigint,	--Unique surrogate id for the user and the course.
+	user_id	bigint,	--Foreign key to the enrolled user.
+	course_id	bigint,	--Foreign key to the enrolled course.
+	enrollment_count	int,	--Total number of enrollments associated with the user in the course for his/her all roles under all base roles, duplicate or not.
+	role_count	int,	--Total number of unique roles associated with the user in the course.
+	base_role_count	int,	--Total number of unique base roles associated with the user in the course.
+	account_admin_role_count	int,	--Total number of 'AccountAdmin' roles associated with the user in the course.
+	teacher_enrollment_role_count	int, --Total number of 'TeacherEnrollment' roles associated with the user in the course.
+	designer_enrollment_role_count	int,	--Total number of 'DesignerEnrollment' roles associated with the user in the course.
+	ta_enrollment_role_count	int,	--Total number of 'TaEnrollment' roles associated with the user in the course.
+	student_enrollment_role_count	int,	--Total number of 'StudentEnrollment' roles associated with the user in the course.
+	observer_enrollment_role_count	int,	--Total number of 'ObserverEnrollment' roles associated with the user in the course.
+	account_membership_role_count	int,	--Total number of 'AccountMembership' roles associated with the user in the course.
+	no_permissions_role_count	int,	--Total number of 'NoPermissions' roles associated with the user in the course.
+	account_admin_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	teacher_enrollment_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	designer_enrollment_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	ta_enrollment_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	student_enrollment_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	observer_enrollment_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	account_membership_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	no_permissions_enrollment_id	bigint,	--Enrollment ID if this a valid role for the user in the course, else NULL.
+	most_privileged_role	varchar,	--The most privileged role associated with the user in the course.
+	least_privileged_role	varchar	--The least privileged role associated with the user in the course.
+);
+
+CREATE TABLE IF NOT EXISTS enrollment_term_dim (
+	id	bigint,	--Unique surrogate id for the enrollment term.
+	canvas_id	bigint,	--Primary key for this record in the Canvas enrollments table.
+	root_account_id	bigint,	--Foreign key to the root account for this enrollment term
+	name	varchar,	--Name of the enrollment term
+	date_start	timestamp,	--Term start date
+	date_end	timestamp,	--Term end date
+	sis_source_id	varchar	--Correlated SIS id for this enrollment term (assuming SIS has been configured properly)
+);
+
+CREATE TABLE IF NOT EXISTS external_tool_activation_dim (
+	id	bigint,	--Unique surrogate id for tool activations
+	canvas_id	bigint,	--Primary key for this record in the context_external_tools table in the Canvas database
+	course_id	bigint,	--Foreign key to the course if this tool was activated in a course
+	account_id	bigint,	--Foreign key to the account this tool was activated in if it was activated in an account
+	activation_target_type	varchar,	--The type of object the tool was activated in, (course or account)
+	url	varchar,	--The URL to where the tool may launch to
+	name	varchar,	--The name of tool activation as entered by the user
+	description	varchar,	--The description of the tool activation as entered by the user
+	workflow_state	varchar,	--Workflow state for activation (active, deleted)
+	privacy_level	varchar,	--Privacy setting for activation (name_only, email_only, anonymous, public)
+	created_at	timestamp,	--Timestamp when the activation was created
+	updated_at	timestamp,	--Timestamp when the activation was last updated
+	tool_id	varchar,	--The tool id received from the external tool. May be missing if the tool does not send an id.
+	selectable_all	boolean	--true - tool is selectable in all scenarios. false - not selectable for assignment or module selection menu
+);
+
+CREATE TABLE IF NOT EXISTS file_dim (
+	id	bigint,	--Unique surrogate ID for this file.
+	canvas_id	bigint,	--Primary key for this file in the attachments table.
+	display_name	text,	--Name of this file.
+	account_id	bigint,	--Foreign key to the account this file belongs to.
+	assignment_id	bigint,	--Foreign key to the assignment this file belongs to.
+	conversation_message_id	bigint,	--Foreign key to the conversation message this file belongs to.
+	course_id	bigint,	--Foreign key to the course this file belongs to.
+	folder_id	bigint,	--Foreign key to the folder this file belongs to.
+	group_id	bigint,	--Foreign key to the group this file belongs to.
+	quiz_id	bigint,	--Foreign key to the quiz this file belongs to.
+	quiz_submission_id	bigint,	--Foreign key to the quiz submission this file belongs to.
+	replacement_file_id	bigint,	--ID of the overwriting file if this file is overwritten.
+	root_file_id	bigint,	--ID of the source file from which this file was copied and created. Set to 'NULL' when this is the only copy.
+	submission_id	bigint,	--Foreign key to the submission this file belongs to.
+	uploader_id	bigint,	--Foreign key to the user who uploaded this file. Might contain users which are not in the user dimension table.
+	user_id	bigint,	--Foreign key to the user this file belongs to.
+	owner_entity_type	text,	--Table this file is associated with...Sarah note: original type enum.
+	content_type	varchar,	--Contains the MIME type of this file.
+	md5	varchar,	--Contains the MD5 checksum of the contents of this file.
+	file_state	text,	--Denotes the current state of this file. Possible values are 'available', 'broken', 'deleted', 'errored' and 'hidden'. Sarah note: original type enum.
+	could_be_locked	text,	--Dictates if the quiz can be locked or not. Possible values are 'allow_locking' and 'disallow_locking'. Sarah note: original type enum.
+	locked	text,	--Denotes the current lock status of this file. Possible values are 'is_locked' and 'is_not_locked'. Sarah note: original type enum.
+	lock_at	timestamp,	--Date/Time when this file is to be locked.
+	unlock_at	timestamp,	--Date/Time when this file is to unlocked.
+	viewed_at	timestamp,	--Date/Time when this file was last viewed.
+	created_at	timestamp,	--Date/Time when this file was created.
+	updated_at	timestamp,	--Date/Time when this file was last updated.
+	deleted_at	timestamp	--Date/Time when this file was deleted.
+);
+
+CREATE TABLE IF NOT EXISTS grading_period_dim (
+	id	bigint,	--Unique surrogate identifier for the grading period.
+	canvas_id	bigint,	--Primary key for the grading period.
+	grading_period_group_id	bigint,	--Surrogate ID to the grading period group table.
+	close_date	timestamp,	--Grades can only be changed before the close date of the grading period.
+	created_at	timestamp,	--Timestamp when record was created
+	end_date	timestamp,	--End date of the grading period.
+	start_date	timestamp,	--Start date of the grading period.
+	title	varchar,	--Title for the grading period.
+	updated_at	timestamp,	--Timestamp when record was last updated.
+	workflow_state	varchar	--current workflow state. Possibe values are 'active', 'deleted'
+);
+
+CREATE TABLE IF NOT EXISTS grading_period_group_dim (
+	id	bigint,	--Unique surrogate identifier for the grading period groups
+	canvas_id	bigint,	--Primary key for the grading period groups
+	course_id	bigint,	--Foreign key to the Course table.
+	account_id	bigint,	--Foreign key to the Account table.
+	created_at	timestamp,	--Timestamp when record was created.
+	title	varchar,	--Title for the grading period group.
+	updated_at	timestamp,	--Timestamp when record was last updated.
+	workflow_state	varchar	--Workflow state for the grading period group. Possibe values are 'active', 'deleted'
+);
+
+CREATE TABLE IF NOT EXISTS group_dim (
+	id	bigint,	--Unique surrogate id for the group.
+	canvas_id	bigint,	--Primary key to the groups table in canvas.
+	name	varchar,	--Name of the group.
+	description	text,	--Description of the group.
+	created_at	timestamp,	--Timestamp when the group was first saved in the system.
+	updated_at	timestamp,	--Timestamp when the group was last updated in the system.
+	deleted_at	timestamp,	--Timestamp when the group was deleted.
+	is_public	boolean,	--True if the group contents are accessible to public.
+	workflow_state	varchar,	--Workflow state for group.(values: deleted,active)
+	context_type	varchar,	--The context type to which the group belongs to. For example- Accounts, Courses etc.
+	category	text,	--Group description by the users.
+	join_level	varchar,	--Permissions required to join a group. For example, it can be invitation-only or auto.
+	default_view	varchar,	--Default view for groups is the feed.
+	sis_source_id	bigint,	--Correlated id for the record for this group in the SIS system (assuming SIS integration is configured)
+	group_category_id	bigint,	--(Not implemented) Foreign key to group category dimension table.
+	account_id	bigint,	--Parent account for this group.
+	wiki_id	bigint	--Foreign key to the wiki_dim table.
+);
+
+CREATE TABLE IF NOT EXISTS group_membership_dim (
+	id	varchar,	--The ID of the membership object
+	canvas_id	varchar,	--The ID of the membership object as it appears in the db.
+	group_id	bigint,	--Foreign key to the group dimension for a particular group.
+	moderator	text,	--Whether or not the user is a moderator of the group. Possible values are 'is_moderator' and 'not_moderator'. Sarah note: original type enum.
+	workflow_state	text,	--The current state of the membership. Current possible values are 'accepted', 'invited', 'requested', and 'deleted'. Sarah note: original type enum.
+	created_at	timestamp,	--Timestamp when the group membership was first saved in the system.
+	updated_at	timestamp	--Timestamp when the group membership was last updated in the system.
+);
+
+CREATE TABLE IF NOT EXISTS module_completion_requirement_dim (
+	id	bigint,	--Unique surrogate ID for the module completion requirement.
+	module_id	bigint,	--Module that contains the completion requirement.
+	module_item_id	bigint,	--Item that is the subject of the completion requirement.
+	requirement_type	text	--Type of completion event that must be achieved to consider item complete. Sarah note: original type enum.
+);
+
+CREATE TABLE IF NOT EXISTS module_dim (
+	id	bigint,	--Unique surrogate ID for the module.
+	canvas_id	bigint,	--Original primary key for module in the Canvas table.
+	course_id	bigint,	--The course that owns this module.
+	require_sequential_progress	text,	--Should module items be completed sequentially? Valid values are 'required', 'not_required', 'unspecified'. Sarah note: original type enum.
+	workflow_state	text,	--Workflow state for submission lifetime values. Possible values are 'locked', 'completed', 'unlocked' and 'started'. Sarah note: original type enum.
+	position	integer,	--Position of the module on the modules page.
+	name	text,	--The name of the module in Canvas.
+	created_at	timestamp,	--Date/Time when the module was created.
+	deleted_at	timestamp,	--Timestamp when the module was deleted.
+	unlock_at	timestamp,	--Timestamp when the module will unlock.
+	updated_at	timestamp	--Date/Time when the module was last updated.
+);
+
+CREATE TABLE IF NOT EXISTS module_item_dim (
+	id	bigint,	--Unique surrogate ID for the module_item.
+	canvas_id	bigint,	--Original primary key for module_item in the Canvas table.
+	assignment_id	bigint,	--Key into assignments table for 'Assignment' type items.
+	course_id	bigint,	--The course that owns this module.
+	discussion_topic_id	bigint,	--Key into discussion_topics table for 'Discussion' type items.
+	file_id	bigint,	--Key into file table for 'File' type items.
+	module_id	bigint,	--Parent module for this module item.
+	quiz_id	bigint,	--Key into quizzes table for 'Quiz' type items.
+	wiki_page_id	bigint,	--Key into wiki_pages table for 'Page' type items.
+	content_type	text,	--The type of content linked to this item...Sarah note: original type enum.
+	workflow_state	text,	--State of the module item. Sarah note: original type enum.
+	position	integer,	--Position of the module item within the module context.
+	title	text,	--Title of the module item.
+	url	text,	--Url for external url type module items.
+	created_at	timestamp,	--Date/Time when the module item was created.
+	updated_at	timestamp	--Date/Time when the module item was last updated.
+);
+
+CREATE TABLE IF NOT EXISTS module_prerequisite_dim (
+	id	bigint,	--Unique surrogate ID for the module prerequisite.
+	module_id	bigint,	--Module that contains the prerequisite.
+	prerequisite_module_id	bigint	--Module that must be completed to fulfill the prerequisite.
+);
+
+CREATE TABLE IF NOT EXISTS module_progression_completion_requirement_dim (
+	id	bigint,	--Unique surrogate ID for the module progression completion requirement.
+	module_progression_id	bigint,	--Module progression referenced by completion requirement.
+	module_item_id	bigint,	--Item that the user has not completed.
+	requirement_type	text,	--Type of completion event that must be achieved to consider item complete. sarah note: original type enum.
+	completion_status	text	--Denotes if the completion event is complete or not. Possible values are 'complete' and 'incomplete'. Sarah note: original type enum.
+);
+
+CREATE TABLE IF NOT EXISTS module_progression_dim (
+	id	bigint,	--Unique surrogate ID for the module progression.
+	canvas_id	bigint,	--Original primary key for module progression in the Canvas table.
+	module_id	bigint,	--Parent module for this module progression.
+	user_id	bigint,	--User being tracked in the module progression.
+	collapsed	text,	--Collapsed state of the module progression. Sarah note: original type enum.
+	is_current	text,	--The current state of the module progression. Sarah note: original type enum.
+	workflow_state	text,	--The workflow state of the module progression. Sarah note: original type enum.
+	current_position	integer,	--Represents the users current position in the module.
+	lock_version	integer,	--Lock version of the module progression.
+	created_at	timestamp,	--Date/ Time when the module progression was created.
+	completed_at	timestamp,	--Date/Time when the module progression was completed.
+	evaluated_at	timestamp,	--Date/Time when the module progression was evaluated.
+	updated_at	timestamp	--Date/Time when the module progression was last updated.
+);
+
+CREATE TABLE IF NOT EXISTS pseudonym_dim (
+	id	bigint,	--Unique surrogate id for the pseudonym.
+	canvas_id	bigint,	--Primary key for this pseudonym in the the Canvas database
+	user_id	bigint,	--Id for the user associated with this pseudonym
+	account_id	bigint,	--Id for the account associated with this pseudonym
+	workflow_state	varchar,	--Workflow status indicating that pseudonym is [deleted] or [active]
+	last_request_at	timestamp,	--Timestamp of when the user last logged in with this pseudonym
+	last_login_at	timestamp,	--Timestamp of last time a user logged in with this pseudonym
+	current_login_at	timestamp,	--Timestamp of when the user logged in
+	last_login_ip	varchar,	--IP address recorded the last time a user logged in with this pseudonym
+	current_login_ip	varchar,	--IP address of user's current/last login
+	position	int,	--Position of user's login credentials
+	created_at	timestamp,	--Timestamp when this pseudonym was created in Canvas
+	updated_at	timestamp,	--Timestamp when this pseudonym was last updated in Canvas
+	password_auto_generated	boolean,	--True if the password has been auto-generated
+	deleted_at	timestamp,	--Timestamp when the pseudonym was deleted (NULL if the pseudonym is still active)
+	sis_user_id	varchar,	--Correlated id for the record for this course in the SIS system (assuming SIS integration is configured)
+	unique_name	varchar,	--Actual login id for a given pseudonym/account
+	integration_id	varchar,	--A secondary unique identifier useful for more complex SIS integrations. This identifier must not change for the user, and must be globally unique.
+	authentication_provider_id	bigint	--The authentication provider this login is associated with. This can be the integer ID of the provider, or the type of the provider (in which case, it will find the first matching provider.)
+);
+
+CREATE TABLE IF NOT EXISTS quiz_dim (
+	id	bigint,	--Unique surrogate ID for the quiz.
+	canvas_id	bigint,	--Primary key for this quiz in the quizzes table.
+	root_account_id	bigint,	--Root account ID associated with this quiz.
+	name	varchar,	--Name of the quiz. Equivalent Canvas API field -> 'title'.
+	points_possible	double precision,	--Total point value given to the quiz.
+	description	text,	--Description of the quiz.
+	quiz_type	varchar,	--Type of quiz. Possible values are 'practice_quiz', 'assignment', 'graded_survey' and 'survey'. Defaults to 'NULL'.
+	course_id	bigint,	--Foreign key to the course the quiz belongs to.
+	assignment_id	bigint,	--Foreign key to the assignment the quiz belongs to.
+	workflow_state	varchar,	--Denotes where the quiz is in the workflow. Possible values are 'unpublished', 'published' and 'deleted'. Defaults to 'unpublished'.
+	scoring_policy	varchar,	--Scoring policy for a quiz that students can take multiple times. Is required and only valid if allowed_attempts > 1. Possible values are 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to 'keep_highest'.
+	anonymous_submissions	varchar,	--Dictates whether students are allowed to submit the quiz anonymously. Possible values are 'allow_anonymous_submissions' and 'disallow_anonymous_submissions'. Defaults to 'disallow_anonymous_submissions'.
+	display_questions	varchar,	--Policy for displaying the questions in the quiz. Possible values are 'multiple_at_a_time' and 'one_at_a_time'. Defaults to 'multiple_at_a_time'. Equivalent Canvas API field -> 'one_question_at_a_time'.
+	answer_display_order	varchar,	--Policy for displaying the answers for each question in the quiz. Possible values are 'in_order' and 'shuffled'. Defaults to 'in_order'. Equivalent Canvas API field -> 'shuffle_answers'.
+	go_back_to_previous_question	varchar,	--Policy on going back to the previous question. Is valid only if 'display_questions' is set to 'one_at_a_time'. Possible values are 'allow_going_back' and 'disallow_going_back'. Defaults to 'allow_going_back'. Equivalent Canvas API field -> 'cant_go_back'.
+	could_be_locked	varchar,	--Dictates if the quiz can be locked or not. Possible values are 'allow_locking' and 'disallow_locking'. Defaults to 'disallow_locking'.
+	browser_lockdown	varchar,	--Dictates whether the browser has locked-down when the quiz is being taken. Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
+	browser_lockdown_for_displaying_results	varchar,	--Dictates whether the browser has to be locked-down to display the results. Is valid only if 'hide_results' is set to 'never' or 'until_after_last_attempt' (for the results to be displayed after the last attempt). Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
+	browser_lockdown_monitor	varchar,	--Dictates whether a browser lockdown monitor is required. Possible values are 'required' and 'not_required'. Defaults to 'not_required'.
+	ip_filter	varchar,	--Restricts access to the quiz to computers in a specified IP range. Filters can be a comma-separated list of addresses, or an address followed by a mask.
+	show_results	varchar,	--Dictates whether or not quiz results are shown to students. If set to 'always', students can see their results after any attempt and if set to 'never', students can never see their results. If 'dw_quiz_fact.allowed_attempts > 1' then when set to 'always_after_last_attempt', students can only see their results always, but only after their last attempt. Similarly, if set to 'only_once_after_last_attempt', then students can see their results only after their last attempt, that too only once. Possible values are 'always', 'never', 'always_after_last_attempt' and 'only_once_after_last_attempt'. Defaults to 'always'. Equivalent Canvas API field -> 'hide_results' combined with 'one_time_results'.
+	show_correct_answers	varchar,	--Dictates whether correct answers are shown when are results are viewed. It's valid only if 'show_results' is set to 'always'. Possible values are 'always', 'never', 'only_once_after_last_attempt' and 'always_after_last_attempt' (Last two are only valid if 'dw_quiz_fact.allowed_attempts > 1') which have a behavior similar to 'show_results'. Defaults to 'always'. Equivalent Canvas API field -> 'show_correct_answers' combined with 'show_correct_answers_last_attempt'.
+	show_correct_answers_at	timestamp,	--Day/Time when the correct answers would be shown.
+	hide_correct_answers_at	timestamp,	--Day/Time when the correct answers are to be hidden.
+	created_at	timestamp,	--Time when the quiz was created.
+	updated_at	timestamp,	--Time when the quiz was last updated.
+	published_at	timestamp,	--Time when the quiz was published.
+	unlock_at	timestamp,	--Day/Time when the quiz is to be unlocked for students.
+	lock_at	timestamp,	--Day/Time when the quiz is to be locked for students.
+	due_at	timestamp,	--Day/Time when the quiz is due.
+	deleted_at	timestamp	--Time when the quiz was deleted.
+);
+
+CREATE TABLE IF NOT EXISTS quiz_question_answer_dim (
+	id	bigint,	--Unique surrogate key for the quiz question answer. As with all surrogate keys in Canvas Data, there is no guarantee of stability. That said, this key is particularly unstable and will likely change from dump to dump even if there are no data change.
+	canvas_id	bigint,	--Primary key for this quiz question answer. No table available in Canvas.
+	quiz_question_id	bigint,	--Foreign key to the quiz question dimension column.
+	quiz_text	text,	--Text of the answer. Sarah note: original name text, postgresql reserved word.
+	html	text,	--HTML markup of the text.
+	comments	text,	--Specific contextual comments for a particular answer.
+	text_after_answers	text,	--(Used in 'short_answer_question', also known as 'fill_in_the_blank'. Set to 'NULL' in others) Text following the missing word.
+	answer_match_left	varchar,	--(Used in 'matching_question', set to 'NULL' in others) Static value of the answer that will be displayed on the left for students to match for.
+	answer_match_right	varchar,	--(Used in 'matching_question', set to 'NULL' in others) Correct match for the value given in 'answer_match_left', displayed in a drop-down with other 'answer_match_right' values.
+	matching_answer_incorrect_matches	varchar,	--(Used in 'matching_question', set to 'NULL' in others) List of distractors (incorrect answers), delimited by new lines, that will be seeded with all the 'answer_match_right' values.
+	numerical_answer_type	varchar,	--(Used in 'numerical_question', set to 'NULL' in others) Denotes the type of numerical answer that is expected. Possible values are 'exact_answer' and 'range_answer'.
+	blank_id	varchar,	--(Used in 'fill_in_multiple_blanks_question' and 'multiple_dropdowns_question', set to 'NULL' otherwise) Refers to the ID of the blank(s) in the question text.
+	exact	double precision,	--(Used in 'numerical_question' with answer type 'exact_answer', set to 'NULL' otherwise) Value the answer must be equal to.
+	margin	double precision,	--(Used in 'numerical_question' with answer type 'exact_answer', set to 'NULL' otherwise) Margin of error allowed for a student's answer.
+	starting_range	double precision,	--(Used in 'numerical_question' with answer type 'range_answer', set to 'NULL' otherwise) Start of the allowed range (inclusive).
+	ending_range	double precision	--(Used in 'numerical_question' with answer type 'range_answer', set to 'NULL' otherwise) End of the allowed range (inclusive).
+);
+
+CREATE TABLE IF NOT EXISTS quiz_question_dim (
+id	bigint,	--Unique surrogate key for the quiz question.
+canvas_id	bigint,	--Primary key for this quiz question in the 'quiz_questions' table.
+quiz_id	bigint,	--Foreign key to the quiz dimension table.
+quiz_question_group_id	bigint,	--Foreign key to the quiz group dimension table.
+position	int,	--Order in which the question will be displayed in the quiz relative to other questions associated with the quiz.
+workflow_state	varchar,	--Denotes where the quiz question is in the workflow. Possible values are 'unpublished', 'published' and 'deleted'. Defaults to 'unpublished'.
+created_at	timestamp,	--Time when the quiz question was created.
+updated_at	timestamp,	--Time when the quiz question was last updated.
+assessment_question_id	bigint,	--Foreign key to the assessment question dimension table (to be made available in later releases).
+assessment_question_version	int,	--Version of the assessment question associated with the quiz question (to be made available in later releases).
+name	varchar,	--Name of the question.
+question_type	varchar,	--Denotes the type of the question. Possible values are 'calculated_question', 'essay_question', 'file_upload_question', 'fill_in_multiple_blanks_question', 'matching_question', 'multiple_answers_question', 'multiple_choice_question', 'multiple_dropdowns_question', 'numerical_question', 'short_answer_question', 'text_only_question' and 'true_false_question'.
+question_text	text,	--Text content of the question.
+regrade_option	varchar,	--Denotes if regrading is available for the question. Possible values are 'available' and 'unavailable' for question types 'multiple_answers_question', 'multiple_choice_question', 'true_false_question' and 'NULL' for others. Defaults to 'available' for the allowed question types and 'NULL' for the rest.
+correct_comments	text,	--Comments to be displayed if the student answers the question correctly.
+incorrect_comments	text,	--Comments to be displayed if the student answers the question incorrectly.
+neutral_comments	text	--Comments to be displayed regardless of how the student answers the question.
+);
+
+CREATE TABLE IF NOT EXISTS quiz_question_group_dim (
+	id	bigint,	--Unique surrogate ID for the quiz group.
+	canvas_id	bigint,	--Primary key for this quiz group in the 'quiz_question_groups' table.
+	quiz_id	bigint,	--Foreign key to quiz dimension.
+	name	varchar,	--Name of the quiz group.
+	position	int,	--Order in which the questions from this group will be displayed in the quiz relative to other questions in the quiz from other groups.
+	created_at	timestamp,	--Time when the quiz question was created.
+	updated_at	timestamp	--Time when the quiz question was last updated.
+);
+
+CREATE TABLE IF NOT EXISTS quiz_submission_dim (
+	id	bigint,	--Unique surrogate ID for the quiz submission.
+	canvas_id	bigint,	--Primary key for this quiz submission in the 'quiz_submissions' Canvas table.
+	quiz_id	bigint,	--ID of the quiz the quiz submission represents. Foreign key to the quiz dimension table.
+	submission_id	bigint,	--ID to the submission the quiz submission represents. Foreign key to the quiz submission dimension table.
+	user_id	bigint,	--ID of the user (who is a student) who made the submission. Foreign key to the user dimension table.
+	workflow_state	varchar,	--Denotes the current state of the quiz submission. Possible values are 'untaken', 'complete', 'pending_review', 'preview' and 'settings_only'. Defaults to 'untaken'. An 'untaken' quiz submission is recorded as soon as a student starts the quiz taking process, before even answering the first question. 'pending_review' denotes that a manual submission has been made by the student which has not been completely graded yet. This usually happens when one or more questions in the quiz cannot be autograded (e.g.. 'essay_question' type questions). A 'preview' workflow state is recorded when a Teacher or Admin previews a quiz (even a partial one). 'settings_only' pertains only to quiz moderation events. It stores the settings to create and store moderation events before the student has begun an attempt.
+	quiz_state_during_submission	varchar,	--There can be two types of quiz states during submission, 1. Quiz submission took place after the quiz was manually unlocked after being locked (but only for a particular student such that (s)he can take the quiz even if it's locked for everyone else). 2. Quiz submission was on-time (that is, when the quiz was never locked). So the two possible values are 'manually_unlocked' and 'never_locked'. Defaults to 'never_locked'.
+	submission_scoring_policy	varchar,	--Denotes if the score has been manually overridden by a teacher to reflect the score of a previous attempt (as opposed to a score calculated by the quiz's scoring policy. Possible values are 'manually_overridden' or the general quiz scoring policies, i.e. 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to the scoring policy of the quiz the submission is associated with.
+	submission_source	varchar,	--Denotes where the submission was received from. Possible values are 'student' and 'test_preview'. Defaults to 'student'.
+	has_seen_results	varchar,	--Denotes whether the student has viewed their results to the quiz.
+	temporary_user_code	varchar,	--Construct for previewing a quiz.
+	created_at	timestamp,	--Time when the quiz submission was created.
+	updated_at	timestamp,	--Time when the quiz submission was last updated.
+	started_at	timestamp,	--Time at which the student started the quiz submission.
+	finished_at	timestamp,	--Time at which the student submitted the quiz submission.
+	due_at	timestamp	--Time at which the quiz submission will be overdue, and will be flagged as a late submission.
+);
+
+CREATE TABLE IF NOT EXISTS quiz_submission_historical_dim (
+	id	bigint,	--Unique surrogate ID for the quiz submission.
+	canvas_id	bigint,	--Primary key for this quiz submission in the 'quiz_submissions' Canvas table.
+	quiz_id	bigint,	--ID of the quiz the quiz submission represents. Foreign key to the quiz dimension table.
+	submission_id	bigint,	--ID to the submission the quiz submission represents. Foreign key to the quiz submission dimension table.
+	user_id	bigint,	--ID of the user (who is a student) who made the submission. Foreign key to the user dimension table.
+	version_number	int,	--Version number of this quiz submission.
+	submission_state	varchar,	--Denotes if the quiz submission is a current or previous submission. Possible values are 'current_submission' and 'previous_submission'. Defaults to 'current_submission'.
+	workflow_state	varchar,	--Denotes the current state of the quiz submission. Possible values are 'untaken', 'complete', 'pending_review', 'preview' and 'settings_only'. Out of these, 'settings_only' pertains only to quiz moderation events. It stores the settings to create and store moderation events before the student has begun an attempt. Defaults to 'untaken'.
+	quiz_state_during_submission	varchar,	--There can be two types of quiz states during submission, 1. Quiz submission took place after the quiz was manually unlocked after being locked (but only for a particular student such that (s)he can take the quiz even if it's locked for everyone else). 2. Quiz submission was on-time (that is, when the quiz was never locked). So the two possible values are 'manually_unlocked' and 'never_locked'. Defaults to 'never_locked'.
+	submission_scoring_policy	varchar,	--Denotes if the score has been manually overridden by a teacher to reflect the score of a previous attempt (as opposed to a score calculated by the quiz's scoring policy. Possible values are 'manually_overridden' or the general quiz scoring policies, i.e. 'keep_highest', 'keep_latest' and 'keep_average'. Defaults to the scoring policy of the quiz the submission is associated with.
+	submission_source	varchar,	--Denotes where the submission was received from. Possible values are 'student' and 'test_preview'. Defaults to 'student'.
+	has_seen_results	varchar,	--Denotes whether the student has viewed their results to the quiz.
+	temporary_user_code	varchar,	--Construct for previewing a quiz.
+	created_at	timestamp,	--Time when the quiz submission was created.
+	updated_at	timestamp,	--Time when the quiz submission was last updated.
+	started_at	timestamp,	--Time at which the student started the quiz submission.
+	finished_at	timestamp,	--Time at which the student submitted the quiz submission.
+	due_at	timestamp	--Time at which the quiz submission will be overdue, and will be flagged as a late submission.
+);
+
+CREATE TABLE IF NOT EXISTS role_dim (
+	id	bigint,	--Unique surrogate id for the role.
+	canvas_id	bigint,	--Primary key for this record in the Canvas roles table
+	root_account_id	bigint,	--Foreign key to the account dimension for this role's root account.
+	account_id	bigint,	--The foreign key to the account that is in the role
+	name	varchar,	--The name of role, previously was "role_name" on the enrollments_dim
+	base_role_type	varchar,	--The built in type this role is based on.
+	workflow_state	varchar,	--Workflow status indicating that the role is [deleted] or [inactive]
+	created_at	timestamp,	--Timestamp of the first time the role was entered into the system
+	updated_at	timestamp,	--Timestamp of the last time the role was updated
+	deleted_at	timestamp	--Timestamp of when the role was removed from the system
+);
+
+CREATE TABLE IF NOT EXISTS score_dim (
+	id	bigint,--	Unique surrogate identifier for the score.
+	canvas_id	bigint,	--Primary key for the score.
+	enrollment_id	bigint,	--Foreign key to the Enrollment table.
+	grading_period_id	bigint,	--Foreign key to the grading period group table.
+	created_at	timestamp,	--Timestamp when record was created.
+	updated_at	timestamp,	--Timestamp when record was last updated.
+	workflow_state	varchar	--workflow state for the score. Possibe values are 'active', 'deleted'
+);
+
+CREATE TABLE IF NOT EXISTS submission_comment_dim (
+	id	bigint,	
+	canvas_id	bigint,
+	submission_id	bigint,
+	recipient_id	bigint,	--(Deprecated) No longer used in Canvas.
+	author_id	bigint,	
+	assessment_request_id	bigint,	
+	group_comment_id	varchar,	
+	comment	text,	
+	author_name	varchar,	
+	created_at	timestamp,	
+	updated_at	timestamp,	
+	anonymous	boolean,	
+	teacher_only_comment	boolean,
+	hidden	boolean	
+);
+
+CREATE TABLE IF NOT EXISTS submission_comment_participant_dim (
+	id	bigint,	
+	canvas_id	bigint,	
+	participation_type	varchar,	
+	created_at	timestamp,	
+	updated_at	timestamp	
+);
+
+CREATE TABLE IF NOT EXISTS submission_dim (
+	id	bigint,	--Unique surrogate ID for the submission.
+	canvas_id	bigint,	--Primary key of this record in the Canvas submissions table.
+	body	text,	--Text content for the submission.
+	url	varchar,	--URL content for the submission.
+	grade	varchar,	--Letter grade mapped from the score by the grading scheme.
+	submitted_at	timestamp,	--Timestamp of when the submission was submitted.
+	submission_type	text,	--Type of submission...Sarah note: original type enum.
+	workflow_state	text,	--Workflow state for submission lifetime values. Possible values are 'graded', 'pending_review', 'submitted' and 'unsubmitted'. Sarah note: original type enum.
+	created_at	timestamp,	--Timestamp of when the submission was created.
+	updated_at	timestamp,	--Timestamp of when the submission was last updated.
+	processed	boolean,	--Valid only when there is a file/attachment associated with the submission. By default, this attribute is set to 'false' when making the assignment submission. When a submission has a file/attachment associated with it, upon submitting the assignment a snapshot is saved and its' value is set to 'true'. Defaults to 'NULL'.
+	process_attempts	int,	--(Deprecated) No longer used in Canvas.
+	grade_matches_current_submission	boolean,	--Valid only when a score has been assigned to a submission. This is set to 'false' if a student makes a new submission to an already graded assignment. This is done to indicate that the current grade given by the teacher is not for the most recent submission by the student. It is set to 'true' if a score has been given and there is no new submission. Defaults to 'NULL'.
+	published_grade	varchar,	--Valid only for a graded submission. The values are strings that reflect the grading type used. For example, a scoring method of 'points' will show '4' if given a '4' out of '5', and a scoring method of 'letter grade' will show 'B' for the same score (assuming a grading scale where 80-90% is a 'B'). Defaults to 'NULL'.
+	graded_at	timestamp,	--Timestamp of when the submission was graded.
+	has_rubric_assessment	boolean,	--Valid only for a graded submission. Its' value is set to 'true' if the submission is associated with a rubric that has been assessed for at least one student, otherwise is set to 'false'. Defaults to 'NULL'.
+	attempt	int,	--The number of attempts made including this one.
+	has_admin_comment	boolean,	--(Deprecated) No longer used in Canvas.
+	assignment_id	bigint,	--Foreign key to assignment dimension.
+	excused	text,	--Denotes if this submission is excused or not. Possible values are 'excused_submission' and 'regular_submission'. Sarah note: original type enum.
+	graded_anonymously	text,	--Denotes how the grading has been performed. Possible values are 'graded_anonymously' and 'not_graded_anonymously'. Sarah note: original type enum.
+	grader_id	bigint,	--Foreign key to the user dimension of user who graded the assignment.
+	group_id	bigint,	--Foreign key to the group_dim table.
+	quiz_submission_id	bigint,	--Foreign key to the quiz_submission_dim table.
+	user_id	bigint,	--Foreign key to the user_dim table.
+	grade_state	text	--Denotes the current state of the grade. Possible values are 'auto_graded', 'human_graded' and 'not_graded'. Sarah note: original type enum.
+);
+
+CREATE TABLE IF NOT EXISTS user_dim (
+	id	bigint,	--Unique surrogate id for the user.
+	canvas_id	bigint,	--Primary key for this user in the Canvas users table.
+	root_account_id	bigint,	--Root account associated with this user.
+	name	varchar,	--Name of the user
+	time_zone	varchar,	--User's primary timezone
+	created_at	timestamp,	--Timestamp when the user was created in the Canvas system
+	visibility	varchar,	--(Deprecated) No longer used in Canvas.
+	school_name	varchar,	--Used in Trial Versions of Canvas, the school the user is associated with
+	school_position	varchar,	--Used in Trial Versions of Canvas, the position the user has at the school. E.g. Admin
+	gender	varchar,	--The user's gender. This is an optional field and may not be entered by the user.
+	locale	varchar,	--The user's locale. This is an optional field and may not be entered by the user.
+	public	varchar,	--Used in Trial Versions of Canvas, the type of school the user is associated with
+	birthdate	timestamp,	--The user's birth date. This is an optional field and may not be entered by the user.
+	country_code	varchar,	--The user's country code. This is an optional field and may not be entered by the user.
+	workflow_state	varchar,	--Workflow status indicating the status of the user, valid values are: creation_pending, deleted, pre_registered, registered
+	sortable_name	varchar	--Name of the user that is should be used for sorting groups of users, such as in the gradebook.
+);
+
+CREATE TABLE IF NOT EXISTS wiki_dim (
+	id	bigint,	--Unique id for the wiki.
+	canvas_id	bigint,	--Primary key to the wikis table in canvas.
+	parent_type	varchar,	--Type of Parent the wiki belongs to. For example, Groups or Courses.
+	title	text,	--Title for the wiki.
+	created_at	timestamp,	--Timestamp when the wiki was first saved in the system.
+	updated_at	timestamp,	--Timestamp when the wiki was last updated in the system.
+	front_page_url	text,	--URL of the front page of the wiki.
+	has_no_front_page	boolean	--True if the wiki does not have a front page or is set to NULL.
+);
+
+CREATE TABLE IF NOT EXISTS wiki_page_dim (
+	id	bigint,	--Unique id for the wiki pages.
+	canvas_id	bigint,	--Primary key for the wiki pages table.
+	title	varchar,	--Title of the wiki page.
+	body	text,	--Body of the wiki page. Redshift will only load the first 256 bytes of the body.
+	workflow_state	varchar,	--Current state the wiki is in. For Example, active, unpublished, deleted.
+	created_at	timestamp,	--Timestamp when the wiki page was created in the system.
+	updated_at	timestamp,	--Timestamp when the wiki page was last updated in the system.
+	url	text,	--URL for the wiki page.
+	protected_editing	boolean,	--Editing protection for the wiki page. It is false by default.
+	editing_roles	varchar,	--Users or roles who can edit a wiki page.
+	revised_at	timestamp,	--Timestamp the wiki page was last revised in the system.
+	could_be_locked	boolean	--True if the wiki page can be locked. This prevents it from being visible to others until ready.
+);
+
+CREATE TABLE IF NOT EXISTS requests (
+	id	uuid, --Request ID assigned by the canvas system to the request. Sarah note: original type guid.
+	timestamp_utc	timestamp,	--Timestamp when the request was made in UTC. Sarah note: original name timestamp (reserved word postgresql), type datetime (not a postgresql type).
+	timestamp_year	varchar,	--Year when the request was made.
+	timestamp_month	varchar,	--Month when the request was made.
+	timestamp_day	varchar,	--Day when the request was made.
+	user_id	bigint,	--Foreign key in user_dim for the user that made the request. If the request was made by one user masquerading as another, then this column contains the ID of the user being masqueraded as.
+	course_id	bigint,	--Foreign key in course_dim for the course that owned the page requested. Set to NULL if not applicable.
+	root_account_id	bigint,	--Foreign key in account_dim for the root account on which this request was made.
+	course_account_id	bigint,	--Foreign key in account_dim for the account the associated course is owned by.
+	quiz_id	bigint,	--Foreign key in quiz_dim if the page request is for a quiz, otherwise NULL.
+	discussion_id	bigint,	--Foreign key in discussion_dim if page request is for a discussion, otherwise NULL.
+	conversation_id	bigint,	--Foreign key in conversation_dim if page request is for a conversation, otherwise NULL.
+	assignment_id	bigint,	--Assignment foreign key if page request is for an assignment, otherwise NULL.
+	url	text,	--URL which was requested.
+	user_agent	text,	--User agent header received from the users browser/client software.
+	http_method	varchar,	--HTTP method/verb (GET, PUT, POST etc.) that was sent with the request.
+	remote_ip	varchar,	--IP address that was recorded from the request.
+	interaction_micros	bigint,	--Total time required to service the request in microseconds.
+	web_application_controller	varchar,	--The controller the Canvas web application used to service this request.
+	web_applicaiton_action	varchar,	--Controller the Canvas web application used to service this request. (There is a typo in the field name, in order to minimize impact, this will be changed in a future version of Canvas Data.)
+	web_application_context_type	varchar,	--Containing object type the Canvas web application used to service this request.
+	web_application_context_id	varchar,	--Containing object's ID the Canvas web application used to service this request.
+	real_user_id	bigint,	--If the request was processed by one user masquerading as another, then this column contains the real user ID of the user.
+	session_id	varchar,	--ID of the user's session where this request was made.
+	user_agent_id	bigint,	--(Not implemented) Foreign key to the user agent dimension table.
+	http_status	varchar,	--HTTP status of the request.
+	http_version	varchar	--HTTP protocol version.
+);
