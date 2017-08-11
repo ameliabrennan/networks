@@ -125,40 +125,45 @@ def canvas_bulk_processing_run_schema_sql(cur, schema_sql_file="H:/networks/canv
 ### MAIN
 
 #skip_list = ['requests', 'file_dim', 'quiz_question_answer_fact', 'wiki_page_dim']
-skip_list = ['requests']
+#skip_list = ['requests']
+skip_list = []
 COPY_TEXT_FILES = True
 raw_canvas_directory = os.path.normpath("H:/CanvasData/unpackedFiles") + os.path.normpath("/")
-textfile_directory = os.path.normpath("E:/unpackedFiles_OUTPUT") + os.path.normpath("/")
+# UPDATE THIS TO A non-network directory, add options to change
+# Postgres can only deal with local directories
+textfile_directory = os.path.normpath("C:/scratch/CanvasData/unpackedFiles_noheader") + os.path.normpath("/")
 
 # CONNECT TO DATABASE, NEED AUTOCOMMIT SETTING
-# IMPROVE OPTIONS FOR MODIFICATION HERE
-conn = tools_for_db.db_connect_conn(database_str="sarah_test", user_str="postgres", password_str="Robin", host_str="localhost")
+# IMPROVE OPTIONS FOR CHOOSING A DIFFERENT DATABASE HERE
+conn = tools_for_db.db_connect_conn(database_str="canvas_august11", user_str="postgres", password_str="Robin", host_str="localhost")
 conn.autocommit = True
 cur = conn.cursor()
 #cur = tools_for_db.connect_sarah_sandbox_db("Robin")
-
-canvas_schema_table_list = initialise_canvas_schema_table_list("")
-print("\n%s Tables found in Canvas schema.json" %str(len(canvas_schema_table_list)))
-tools_for_lists.print_list(canvas_schema_table_list)
-
-current_table_list = canvas_schema_table_list
-
-# Important: remove files at this point, before proceeding
-print("\n%s Tables to be excluded from processing:" %str(len(skip_list)))
-tools_for_lists.print_list(skip_list)
-current_table_list = tools_for_lists.remove_list_from_list(current_table_list, skip_list)
-print("\n%s Tables to continue processing:" %str(len(current_table_list)))
-tools_for_lists.print_list(current_table_list)
-
-if (COPY_TEXT_FILES == True): 
-  current_table_list = canvas_bulk_processing_copy_text_files_noheader(raw_canvas_directory, textfile_directory, current_table_list)
-  print("\n%s Canvas files successfully copied across." %str(len(current_table_list)))
-  tools_for_lists.print_list(current_table_list)
 
 schema_sql_file = "H:/networks/canvas_schema_create.sql"
 result = canvas_bulk_processing_run_schema_sql(cur, schema_sql_file)
 
 if (result == True):
+  
+  print("\nHave created Canvas schema on database.")
+
+  canvas_schema_table_list = initialise_canvas_schema_table_list("")
+  print("\n%s Tables found in Canvas schema.json" %str(len(canvas_schema_table_list)))
+  tools_for_lists.print_list(canvas_schema_table_list)
+
+  current_table_list = canvas_schema_table_list
+
+  # Important: remove files at this point, before proceeding
+  print("\n%s Tables to be excluded from processing:" %str(len(skip_list)))
+  tools_for_lists.print_list(skip_list)
+  current_table_list = tools_for_lists.remove_list_from_list(current_table_list, skip_list)
+  print("\n%s Tables to continue processing:" %str(len(current_table_list)))
+  tools_for_lists.print_list(current_table_list)
+
+  if (COPY_TEXT_FILES == True): 
+    current_table_list = canvas_bulk_processing_copy_text_files_noheader(raw_canvas_directory, textfile_directory, current_table_list)
+    print("\n%s Canvas files successfully copied across." %str(len(current_table_list)))
+    tools_for_lists.print_list(current_table_list)
 
   db_canvas_table_list = initialise_db_canvas_table_list(cur, canvas_schema_table_list)
   print("\n%s Canvas tables found in current database." %str(len(db_canvas_table_list)))
@@ -169,7 +174,7 @@ if (result == True):
   current_table_list = canvas_bulk_processing_truncate_tables(cur, current_table_list)
   print("\n%s Canvas tables successfully truncated." %str(len(current_table_list)))
 
-  current_table_list = canvas_bulk_processing_import_text_files_to_tables(cur, textfile_directory, current_table_list)
+  current_table_list = canvas_bulk_processing_import_text_files_to_tables(cur, textfile_directory, current_table_list, print_update=True)
   print("\n%s Canvas tables were successfully copied across to the database." %str(len(current_table_list)))
   tools_for_lists.print_list(current_table_list)
   print("\n%s Canvas tables were successfully copied across to the database." %str(len(current_table_list)))
@@ -178,7 +183,7 @@ if (result == True):
 
 else:
 
-  print("Could not run schema sql, please check and try again.")
+  print("Could not run Canvas schema creation SQL, please check and try again.")
 
 
 
