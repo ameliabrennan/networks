@@ -23,7 +23,7 @@ def copy_file_noheader(input_file_name, output_file_name):
       else:
         output_file.write(line)
         if((line_count % 1000) == 0):
-          print("\t %s copying row %s" %(input_file_name, str(line_count)))
+          print("\t %s copying row %s" %(os.path.basename(input_file_name), str(line_count)))
       line_count += 1
     result = True
     return(result)
