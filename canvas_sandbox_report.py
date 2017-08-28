@@ -25,6 +25,14 @@ def canvas_run_sandbox_report_sql(cur, sandbox_report_sql_file="H:/networks/qry_
     traceback.print_exc()
     return(result)
 
+def return_sandbox_filecount_array(cur):
+  result = False
+  print("HERE - returning file size distribution")
+  try:
+    sql_string = "SELECT course_file_count FROM vw_sandbox_courses_with_counts;"
+    cur.execute(sql_string)
+    filecount_array = cur.fetchall()
+    
 
 ### MAIN
 

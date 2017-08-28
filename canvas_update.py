@@ -109,7 +109,7 @@ def run_date_table_sql(cur, date_table_sql_file="H:/networks/canvas_schema_creat
     traceback.print_exc()
     return(result)
 
-def canvas_update_part1_textfiles(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory):
+def canvas_update_part1_textfiles(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, config_file_name):
   result = False
   try:
     print("\n*** Canvas update part 1: text files ***")
@@ -125,10 +125,10 @@ def canvas_update_part1_textfiles(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_t
 
     if (RUN_SYNC == True):
       print("Running SYNC")
-      sync_result = canvas_api_call.run_canvas_sync("")
+      sync_result = canvas_api_call.run_canvas_sync(config_file_name)
       print(sync_result)
       if (sync_result == True):
-        unpacked_table_list = canvas_api_call.run_canvas_unpack(current_table_list)
+        unpacked_table_list = canvas_api_call.run_canvas_unpack(current_table_list, config_file_name)
     else:
        print("Skipping SYNC")
 
@@ -156,33 +156,37 @@ def canvas_update_part2_database(current_table_list, database_name, database_tex
     cur = tools_for_db.db_connect_cursor_autocommit(database_str=database_name, user_str="postgres", password_str="Robin", host_str="localhost")
     
     current_result = run_canvas_schema_sql(cur)
+   
+    db_canvas_table_list = fetch_db_canvas_table_list(cur, current_table_list)
+    print("\n%d Canvas tables found in current database." %len(db_canvas_table_list))
+    tools_for_lists.print_list(db_canvas_table_list)
 
+    current_table_list = db_canvas_table_list
+
+    current_table_list = truncate_tables_in_list(cur, current_table_list)
+    print("\n%d Canvas tables successfully truncated." %len(current_table_list))
+
+    current_table_list = import_canvas_text_files_to_tables(cur, database_textfile_directory, current_table_list, print_update=True)
+
+    current_result = run_date_table_sql(cur)
     if (current_result == True):
-      
-      db_canvas_table_list = fetch_db_canvas_table_list(cur, current_table_list)
-      print("\n%d Canvas tables found in current database." %len(db_canvas_table_list))
-      tools_for_lists.print_list(db_canvas_table_list)
+      print("Have successfully added timestamp")
+      cur.execute("SELECT date_updated FROM canvas_postgres_copy_timestamp;")
+      canvas_timestamp = cur.fetchone()[0]
+      print(canvas_timestamp)
+    else:
+      print("Problems with timestamp")
 
-      current_table_list = db_canvas_table_list
-
-      current_table_list = truncate_tables_in_list(cur, current_table_list)
-      print("\n%d Canvas tables successfully truncated." %len(current_table_list))
-
-      current_table_list = import_canvas_text_files_to_tables(cur, database_textfile_directory, current_table_list, print_update=True)
-
-      current_result = run_date_table_sql(cur)
-      if (current_result == True):
-        print("Have successfully added timestamp")
-      else:
-        print("Problems with timestamp")
-
+    cur.close()
     return(current_table_list)
 
   except:
     traceback.print_exc()
+    cur.close()
     return(result)
 
-def canvas_update_summary(current_table_list, skip_list, database_name):
+
+def canvas_update_summary(current_table_list, skip_list, database_name, email_recipients):
   result = False
   try:
     tools_for_lists.print_list(current_table_list)
@@ -190,48 +194,49 @@ def canvas_update_summary(current_table_list, skip_list, database_name):
     print("\n%d Canvas tables were successfully copied across to database, as listed above." %len(current_table_list))
     print("Database name: %s" %database_name)
 
-    email_message = 'Canvas database updated: ' + database_name + ', at ' + str(time.asctime()) 
-    if (len(skip_list) >= 1):
-      email_message += ', excluding: '
-      for table_name in skip_list:
-        email_message += table_name
-    else:
-      email_message += ', all tables included' 
+    if (len(email_recipients) >= 1):
+      email_message = 'Canvas database updated: ' + database_name + ', at ' + str(time.asctime()) 
+      if (len(skip_list) >= 1):
+        email_message += ', excluding: '
+        for table_name in skip_list:
+          email_message += table_name
+      else:
+        email_message += ', all tables included' 
 
-    #email_recipients = ['sarah.taylor@rmit.edu.au', 'amelia.brennan@rmit.edu.au', 'amitoze.nandha@rmit.edu.au', 'peter.ryan2@rmit.edu.au']
-    email_recipients = ['sarah.taylor@rmit.edu.au']
-    email_result = tools_for_email.send_gmail_withattachments('sarahcanvasreports@gmail.com', 'H:\SARAH_MISC_RMIT_STUDIOS\sarahcanvas.txt', email_recipients, email_message, [])
+      email_result = tools_for_email.send_gmail_withattachments('sarahcanvasreports@gmail.com', 'H:\SARAH_MISC_RMIT_STUDIOS\sarahcanvas.txt', email_recipients, email_message, [])
 
-    result = email_result
+      result = email_result
+
     return(result)
   except:
     traceback.print_exc()
     return(result)
 
+# call this function from another file: this runs the whole process
+def run_canvas_update(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, database_name, config_file_name, email_recipients=[]):
+  
+  print("Started process: ", str(time.asctime()))
+  current_table_list = canvas_update_part1_textfiles(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, config_file_name)
+  if (current_table_list != False):
+    current_table_list = canvas_update_part2_database(current_table_list, database_name, database_textfile_directory)
+  else:
+    print("Problems with process, stopped at: ", str(time.asctime()))
 
-### MAIN
+  if (current_table_list != False):
+    current_result = canvas_update_summary(current_table_list, skip_list, database_name, email_recipients)    
+    print("Finished process: ", str(time.asctime()))
+  else:
+    print("Problems with process, stopped at: ", str(time.asctime()))
 
-### CHOICES
-canvas_textfile_directory = "H:/CanvasData/unpackedFiles"
+### TO TEST
 
-# common text file locations
-textfile_options = {}
-textfile_options['E'] = os.path.normpath("E:/unpackedFiles_noheader")
-textfile_options['C'] = os.path.normpath("C:/scratch/CanvasData/unpackedFiles_noheader")
-textfile_options['studentcopy'] = os.path.normpath("C:/scratch/canvasData/unpackedFiles_noheader")
-
-skip_list = ['requests']
-RUN_SYNC = True
-COPY_TEXT_FILES = True
-database_textfile_directory = "E:/unpackedFiles_noheader"
-database_name = "canvas_current"
-
-current_table_list = canvas_update_part1_textfiles(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory)
-current_table_list = canvas_update_part2_database(current_table_list, database_name, database_textfile_directory)
-current_result = canvas_update_summary(current_table_list, skip_list, database_name)
-
-print("Finished process: ", str(time.asctime()))
- 
-
-
-
+## Call from another file, FOR EXAMPLE:
+## import canvas_update
+## canvas_textfile_directory = "H:/CanvasData/unpackedFiles"
+## config_file_name = "H:/CanvasData" + os.path.normpath("/") + "config.js"
+## skip_list = ['requests']
+## RUN_SYNC = True
+## COPY_TEXT_FILES = True
+## database_textfile_directory = "E:/unpackedFiles_noheader"
+## database_name = "sarah_sandbox"
+## run_canvas_update(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, database_name, config_file_name, email_recipients)
