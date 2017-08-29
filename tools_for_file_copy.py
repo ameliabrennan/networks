@@ -26,6 +26,8 @@ def copy_file_noheader(input_file_name, output_file_name):
           print("\t %s copying row %s" %(os.path.basename(input_file_name), str(line_count)))
       line_count += 1
     result = True
+    output_file.close()
+    input_file.close()
     return(result)
   except:
     traceback.print_exc()
@@ -44,9 +46,18 @@ def print_file_content(input_file_name, limit_rows=30):
       if (line_num <= limit_rows):
         print(line)
       line_num += 1
+    input_file.close()
     return
   except:
     traceback.print_exc()
     print("Could not print file %s\n" %input_file_name)
     return
 
+def print_write(message, output_file):
+  try:
+    output_file.write(message)
+    print(message)
+    return
+  except:
+    traceback.print_exc()
+    return

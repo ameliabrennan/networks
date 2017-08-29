@@ -22,7 +22,7 @@ def send_gmail_withattachments(fromaddr='', password_pointer='', toaddrs=[], pla
     result = False
     try:
         username = fromaddr
-        print("\nHERE - sending email from %s with attachments" %fromaddr)
+        print("\nSending email from %s..." %fromaddr)
         if(os.path.isfile(password_pointer) == True):
             password = open(password_pointer, 'r', encoding='utf8').readline()
         else:
@@ -47,8 +47,7 @@ def send_gmail_withattachments(fromaddr='', password_pointer='', toaddrs=[], pla
 
             maintype, subtype = ctype.split("/", 1)
 
-            print(maintype)
-            print(subtype)
+            print("Attaching file of type: ", maintype, ", subtype: ", subtype)
 
             if maintype == "text":
                 fp = open(file)

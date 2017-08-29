@@ -2,8 +2,8 @@
 # This module runs the Canvas Postgres databaes update for Sarah's PC, on the "canvas_current" database
 # This includes running the SYNC, copying the files, implememnting the schema, and uploading the text files
 
-
-import canvas_update
+import os
+import tools_for_canvas_update
 
 canvas_textfile_directory = "H:/CanvasData/unpackedFiles"
 config_file_name = "H:/CanvasData" + os.path.normpath("/") + "config.js"
@@ -23,6 +23,6 @@ database_name = "canvas_current"
 email_recipients = ['sarah.taylor@rmit.edu.au', 'amelia.brennan@rmit.edu.au', 'amitoze.nandha@rmit.edu.au', 'peter.ryan2@rmit.edu.au']
 #email_recipients = ['sarah.taylor@rmit.edu.au']
 
-canvas_update.run_canvas_update(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, database_name, config_file_name, email_recipients)
+tools_for_canvas_update.run_canvas_update(RUN_SYNC, COPY_TEXT_FILES, skip_list, canvas_textfile_directory, database_textfile_directory, database_name, config_file_name, email_recipients)
 
  

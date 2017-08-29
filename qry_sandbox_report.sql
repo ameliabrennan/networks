@@ -47,7 +47,7 @@ DROP VIEW IF EXISTS vw_sandbox_courses_with_counts CASCADE;
 
 CREATE VIEW vw_sandbox_courses_with_counts
 AS
-SELECT sandbox_status, COALESCE(sandbox_sis, sandbox_name) as sandbox_status_source, course_dim_sis_source_id, 
+SELECT course_dim_canvas_id, sandbox_status, COALESCE(sandbox_sis, sandbox_name) as sandbox_status_source, course_dim_sis_source_id,
 inferred_enumber, inferred_vnumber, course_dim_name, 
 COALESCE(course_undeleted_file_count, 0) as course_file_count_excludingdeletions,
 COALESCE(round(course_undeleted_file_size_bytes/1000000, 2), 0) as course_file_volume_mb_excludingdeletions,
@@ -65,7 +65,7 @@ DROP VIEW IF EXISTS vw_sandbox_courses_export CASCADE;
 
 CREATE VIEW vw_sandbox_courses_export
 AS
-SELECT sandbox_status, sandbox_status_source, course_dim_sis_source_id, inferred_enumber, inferred_vnumber, course_dim_name,
+SELECT course_dim_canvas_id, sandbox_status, sandbox_status_source, course_dim_sis_source_id, inferred_enumber, inferred_vnumber, course_dim_name,
 course_file_count_excludingdeletions, course_file_volume_mb_excludingdeletions, 
 CASE WHEN ((course_file_volume_mb_excludingdeletions >= 2) AND (course_file_count_excludingdeletions >= 2)) THEN 'flag'::text END as flag_field,
 course_most_recent_file_update, course_deleted_file_count, course_deleted_file_volume_mb, course_quiz_count

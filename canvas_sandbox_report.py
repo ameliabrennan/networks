@@ -32,7 +32,9 @@ def return_sandbox_filecount_array(cur):
     sql_string = "SELECT course_file_count FROM vw_sandbox_courses_with_counts;"
     cur.execute(sql_string)
     filecount_array = cur.fetchall()
-    
+  except:
+    traceback.print_exc()
+    return(result) 
 
 ### MAIN
 
@@ -51,5 +53,5 @@ if (sql_result == True):
     attachfiles = [sandbox_report_file]
     email_message = "Canvas sandbox report for today, generated at " + ' ' + str(time.asctime())
     email_result = tools_for_email.send_gmail_withattachments('sarahcanvasreports@gmail.com', 'H:\SARAH_MISC_RMIT_STUDIOS\sarahcanvas.txt', ['sarah.taylor@rmit.edu.au', 'pablo.munguia@rmit.edu.au'], email_message, attachfiles)
-
+    #email_result = tools_for_email.send_gmail_withattachments('sarahcanvasreports@gmail.com', 'H:\SARAH_MISC_RMIT_STUDIOS\sarahcanvas.txt', ['sarah.taylor@rmit.edu.au'], email_message, attachfiles)
 
