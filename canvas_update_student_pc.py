@@ -15,11 +15,11 @@ textfile_options['E'] = os.path.normpath("E:/unpackedFiles_noheader")
 textfile_options['C'] = os.path.normpath("C:/scratch/CanvasData/unpackedFiles_noheader")
 textfile_options['studentcopy'] = os.path.normpath("C:/scratch/canvasData/unpackedFiles_noheader")
 
-skip_list = ['users_dim']
+skip_list = ['user_dim']
 RUN_SYNC = False
 COPY_TEXT_FILES = True
 database_textfile_directory = textfile_options['studentcopy']
-database_name = "canvas_studentcopy"
+database_name = "canvas_studentcopy_august30"
 
 #email_recipients = ['sarah.taylor@rmit.edu.au', 'amelia.brennan@rmit.edu.au', 'amitoze.nandha@rmit.edu.au', 'peter.ryan2@rmit.edu.au']
 email_recipients = ['sarah.taylor@rmit.edu.au', 'adelbertchoi@gmail.com', 'siddharthmahthan@gmail.com']

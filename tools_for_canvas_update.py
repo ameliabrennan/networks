@@ -11,6 +11,7 @@ import tools_for_file_copy
 import tools_for_lists
 import tools_for_email
 import traceback, numpy, os, time, json
+import subprocess
 
 # Function: run_canvas_update
 # This is the main function to call to initiate a Canvas database update (from another Python file)
@@ -347,8 +348,9 @@ def run_canvas_sync(config_file_name):
       result = True
     return(result)
   except:
-    return(result)
-
+    traceback.print_exc()
+    print("Problems with sync: will exit entire program as subsequent work will be moot.")
+    exit()
 
 # Function: run_canvas_unpack_single_table
 # This function unpacks a single Canvas table using the CanvasDataCli 'unpack' command line argument
@@ -367,6 +369,7 @@ def run_canvas_unpack_single_table(table_name, config_file_name):
       result = True
     return(result)
   except:
+    traceback.print_exc()
     return(result)
 
 # Function: run_canvas_unpack

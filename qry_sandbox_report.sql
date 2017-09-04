@@ -1,6 +1,6 @@
 DROP VIEW IF EXISTS vw_course_with_sandbox_status CASCADE;
 
-CREATE VIEW vw_course_with_sandbox_status
+CREATE TEMPORARY VIEW vw_course_with_sandbox_status
 AS
 SELECT id as course_dim_id, canvas_id as course_dim_canvas_id, 
 sis_source_id as course_dim_sis_source_id, name as course_dim_name, 
@@ -15,7 +15,7 @@ ORDER BY sis_source_id;
 
 DROP VIEW IF EXISTS vw_undeleted_file_count_by_course;
 
-CREATE VIEW vw_undeleted_file_count_by_course
+CREATE TEMPORARY VIEW vw_undeleted_file_count_by_course
 AS
 SELECT t1.course_id as file_course_id, count(distinct(t1.file_id)) as course_undeleted_file_count, sum(t1.size) as course_undeleted_file_size_bytes, max(t2.updated_at) as course_most_recent_undeleted_file_update
 FROM file_fact t1
@@ -25,7 +25,7 @@ GROUP BY t1.course_id;
 
 DROP VIEW IF EXISTS vw_deleted_file_count_by_course;
 
-CREATE VIEW vw_deleted_file_count_by_course
+CREATE TEMPORARY VIEW vw_deleted_file_count_by_course
 AS
 SELECT t1.course_id as file_course_id, count(distinct(t1.file_id)) as course_deleted_file_count, sum(t1.size) as course_deleted_file_size_bytes, max(t2.updated_at) as course_most_recent_deleted_file_update
 FROM file_fact t1
@@ -36,7 +36,7 @@ GROUP BY t1.course_id;
 
 DROP VIEW IF EXISTS vw_quiz_count_by_course;
 
-CREATE VIEW vw_quiz_count_by_course
+CREATE TEMPORARY VIEW vw_quiz_count_by_course
 AS 
 SELECT course_id as quiz_course_id, count(distinct(quiz_id)) as course_quiz_count
 FROM quiz_fact
@@ -45,7 +45,7 @@ ORDER BY course_quiz_count desc;
 
 DROP VIEW IF EXISTS vw_sandbox_courses_with_counts CASCADE;
 
-CREATE VIEW vw_sandbox_courses_with_counts
+CREATE TEMPORARY VIEW vw_sandbox_courses_with_counts
 AS
 SELECT course_dim_canvas_id, sandbox_status, COALESCE(sandbox_sis, sandbox_name) as sandbox_status_source, course_dim_sis_source_id,
 inferred_enumber, inferred_vnumber, course_dim_name, 
@@ -63,12 +63,12 @@ WHERE t1.sandbox_status is not null;
 
 DROP VIEW IF EXISTS vw_sandbox_courses_export CASCADE;
 
-CREATE VIEW vw_sandbox_courses_export
+CREATE TEMPORARY VIEW vw_sandbox_courses_export
 AS
 SELECT course_dim_canvas_id, sandbox_status, sandbox_status_source, course_dim_sis_source_id, inferred_enumber, inferred_vnumber, course_dim_name,
 course_file_count_excludingdeletions, course_file_volume_mb_excludingdeletions, 
 CASE WHEN ((course_file_volume_mb_excludingdeletions >= 2) AND (course_file_count_excludingdeletions >= 2)) THEN 'flag'::text END as flag_field,
-course_most_recent_file_update, course_deleted_file_count, course_deleted_file_volume_mb, course_quiz_count
+course_most_recent_file_update, course_deleted_file_count, course_deleted_file_volume_mb, course_quiz_count, current_date::date as report_date
 FROM vw_sandbox_courses_with_counts
 ORDER BY course_file_count_excludingdeletions desc;
 
