@@ -121,6 +121,8 @@ ax.yaxis.set(ticks=y_ticks, ticklabels=y_tick_labels)
 # remove the box, leave just the axes
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
+ax.xaxis.set_ticks_position('bottom')
+ax.yaxis.set_ticks_position('left')
 
 # set the titles
 ax.set_title(title, fontweight = 'bold', fontsize = fontsize)
