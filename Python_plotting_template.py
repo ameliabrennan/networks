@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 '''
 Simple template for plotting with matplotlib. Please add to it as necessary!
 In the future it may be worth designing a custom rc file, see http://matplotlib.org/users/customizing.html for example.
